@@ -1,17 +1,22 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs/promises');
 
 const config = require('../src/config');
 const security = require('../src/security');
 const server = require('../server');
-const storage = require('../src/storage');
 
 describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)', () => {
   let baseUrl = '';
   let adminToken = '';
   let mhsToken = '';
+  let originalActivitiesRaw = '';
+  let originalExpensesRaw = '';
 
   before(async () => {
+    originalActivitiesRaw = await fs.readFile(config.FILES.ACTIVITIES, 'utf-8');
+    originalExpensesRaw = await fs.readFile(config.FILES.EXPENSES, 'utf-8');
+
     await new Promise((resolve) => server.listen(0, resolve));
     const { port } = server.address();
     baseUrl = `http://127.0.0.1:${port}`;
@@ -34,6 +39,8 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
   });
 
   after(async () => {
+    await fs.writeFile(config.FILES.ACTIVITIES, originalActivitiesRaw, 'utf-8');
+    await fs.writeFile(config.FILES.EXPENSES, originalExpensesRaw, 'utf-8');
     await new Promise((resolve) => server.close(resolve));
   });
 
@@ -82,14 +89,14 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     assert.ok(body.data.currentWeather);
   });
 
-  it('POST /v2/activities menolak role mahasiswa dengan 403 Forbidden dan mengizinkan admin (201)', async () => {
+  it('POST, PUT, dan DELETE /v2/activities menegakkan RBAC admin dan validasi input', async () => {
     const payload = {
       title: 'Survei Geoteknik Bendungan Sigi',
       location: 'Kabupaten Sigi, Sulawesi Tengah',
       budgetLimitIDR: 8000000
     };
 
-    // Tolak mahasiswa
+    // Tolak mahasiswa pada POST
     const mhsRes = await fetch(`${baseUrl}/v2/activities`, {
       method: 'POST',
       headers: {
@@ -101,7 +108,7 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     });
     assert.equal(mhsRes.status, 403);
 
-    // Izinkan admin
+    // Izinkan admin pada POST
     const adminRes = await fetch(`${baseUrl}/v2/activities`, {
       method: 'POST',
       headers: {
@@ -113,11 +120,60 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     });
     assert.equal(adminRes.status, 201);
     const adminBody = await adminRes.json();
-    assert.equal(adminBody.sukses, true);
-    assert.equal(adminBody.data.title, payload.title);
+    const actId = adminBody.data.id;
 
-    // Hapus kembali activity baru agar idempoten
-    const delRes = await fetch(`${baseUrl}/v2/activities/${adminBody.data.id}`, {
+    // Tolak mahasiswa pada PUT
+    const mhsPut = await fetch(`${baseUrl}/v2/activities/${actId}`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': config.API_KEY,
+        Authorization: `Bearer ${mhsToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'ACTIVE' })
+    });
+    assert.equal(mhsPut.status, 403);
+
+    // Tolak body kosong {} dan tipe unit bukan string pada PUT (400)
+    const emptyPut = await fetch(`${baseUrl}/v2/activities/${actId}`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': config.API_KEY,
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+    assert.equal(emptyPut.status, 400);
+
+    const badTypePut = await fetch(`${baseUrl}/v2/activities/${actId}`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': config.API_KEY,
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ unit: { invalid: true } })
+    });
+    assert.equal(badTypePut.status, 400);
+
+    // Izinkan admin pada PUT
+    const okPut = await fetch(`${baseUrl}/v2/activities/${actId}`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': config.API_KEY,
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'ACTIVE', budgetLimitIDR: 9500000 })
+    });
+    assert.equal(okPut.status, 200);
+    const updatedBody = await okPut.json();
+    assert.equal(updatedBody.data.status, 'ACTIVE');
+    assert.equal(updatedBody.data.budgetLimitIDR, 9500000);
+
+    // Hapus kembali activity baru
+    const delRes = await fetch(`${baseUrl}/v2/activities/${actId}`, {
       method: 'DELETE',
       headers: {
         'x-api-key': config.API_KEY,
@@ -140,7 +196,7 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     assert.equal(body.sukses, false);
   });
 
-  it('GET /v2/expenses mengembalikan data dengan cost object dan relasi activity', async () => {
+  it('GET /v2/expenses mengembalikan cost & activity serta menolak ?activityId bukan integer dengan 400', async () => {
     const res = await fetch(`${baseUrl}/v2/expenses`, {
       headers: { 'x-api-key': config.API_KEY }
     });
@@ -154,6 +210,11 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     assert.equal(typeof item.cost.convertedIDR, 'number');
     assert.ok(item.cost.formattedIDR.startsWith('Rp '));
     assert.ok(item.activity, 'Wajib memuat ringkasan activity terkait');
+
+    const badFilter = await fetch(`${baseUrl}/v2/expenses?activityId=abc`, {
+      headers: { 'x-api-key': config.API_KEY }
+    });
+    assert.equal(badFilter.status, 400);
   });
 
   it('POST /v2/expenses menegakkan breaking change v2: tolak 400 jika tanpa activityId', async () => {
@@ -197,8 +258,8 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     assert.equal(res.status, 404);
   });
 
-  it('POST /v2/expenses berhasil (201) untuk role mahasiswa, dan DELETE khusus admin (403 untuk mhs, 200 admin)', async () => {
-    // 1. Mahasiswa create expense
+  it('POST, PUT, dan DELETE /v2/expenses mengembalikan cost & activity konsisten dan menegakkan RBAC', async () => {
+    // 1. Mahasiswa POST -> 201 + cost & activity
     const createRes = await fetch(`${baseUrl}/v2/expenses`, {
       method: 'POST',
       headers: {
@@ -210,8 +271,8 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
         activityId: 2,
         title: 'Kabel Jaringan Riset Sensor Untad',
         category: 'belanja',
-        amount: 125000,
-        currency: 'IDR',
+        amount: 20,
+        currency: 'USD',
         date: '2026-11-10',
         notes: 'Uji integrasi REST v2 Lidiya'
       })
@@ -219,9 +280,38 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     assert.equal(createRes.status, 201);
     const created = await createRes.json();
     assert.equal(created.sukses, true);
+    assert.ok(created.data.cost && created.data.cost.convertedIDR > 0);
+    assert.equal(created.data.activity.id, 2);
     const newId = created.data.id;
 
-    // 2. Mahasiswa coba DELETE -> harus 403 Forbidden
+    // 2. Mahasiswa PUT -> tolak 404 bila activityId tidak ada, lalu 200 dengan cost & activity
+    const badActPut = await fetch(`${baseUrl}/v2/expenses/${newId}`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': config.API_KEY,
+        Authorization: `Bearer ${mhsToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ activityId: 99999 })
+    });
+    assert.equal(badActPut.status, 404);
+
+    const putRes = await fetch(`${baseUrl}/v2/expenses/${newId}`, {
+      method: 'PUT',
+      headers: {
+        'x-api-key': config.API_KEY,
+        Authorization: `Bearer ${mhsToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ amount: 30, notes: 'Revisi nominal' })
+    });
+    assert.equal(putRes.status, 200);
+    const updated = await putRes.json();
+    assert.equal(updated.data.amount, 30);
+    assert.ok(updated.data.cost && updated.data.cost.convertedIDR > created.data.cost.convertedIDR);
+    assert.equal(updated.data.activity.id, 2);
+
+    // 3. Mahasiswa coba DELETE -> harus 403 Forbidden
     const forbiddenDel = await fetch(`${baseUrl}/v2/expenses/${newId}`, {
       method: 'DELETE',
       headers: {
@@ -231,7 +321,7 @@ describe('Issue #4 — Integration Test REST API v2 Berelasi (src/v2Router.js)',
     });
     assert.equal(forbiddenDel.status, 403);
 
-    // 3. Admin DELETE -> harus 200 OK
+    // 4. Admin DELETE -> harus 200 OK
     const adminDel = await fetch(`${baseUrl}/v2/expenses/${newId}`, {
       method: 'DELETE',
       headers: {
