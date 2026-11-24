@@ -90,14 +90,14 @@ Invoke-RestMethod http://localhost:3000/graphql -Method Post `
 ## 3. Langkah Git & Pull Request
 
 ```bash
-git checkout main
-git pull origin main
-git checkout -b feat/security-graphql-web
+git checkout develop
+git pull origin develop
+git checkout -b feat/issue-1-security-auth   # lalu feat/issue-5-graphql & feat/issue-6-web-dashboard
 
-# Setelah selesai & lolos tes lokal:
+# Setelah selesai & lolos npm test:
 git status
-git add src/security.js src/authRouter.js src/graphqlSchema.js public/
-git commit -m "feat(security-graphql-web): implementasi auth HMAC-SHA256, RBAC, GraphQL, dan Web Dashboard"
-git push -u origin feat/security-graphql-web
+git add src/security.js src/authRouter.js test/
+git commit -m "feat(security): implementasi auth HMAC-SHA256, scrypt, dan RBAC (#1)"
+git push -u origin feat/issue-1-security-auth
 ```
-Lalu buka GitHub → **Compare & pull request** ke `main` → Merge setelah dicek.
+Lalu buka GitHub → **Compare & pull request** ke branch **`develop`** (tulis `Closes #1` di deskripsi PR) → Merge setelah dicek.

@@ -92,15 +92,15 @@ Copy-Item .env.example .env
 git config user.name "Trista Sheryl Lambei"
 git config user.email "trista.lambei@untad.ac.id"   # Ganti dengan email akun GitHub-mu jika berbeda
 
-# 3. Buat branch sendiri dari main
-git checkout main
-git pull origin main
-git checkout -b feat/docs-testing-cli
+# 3. Buat branch sendiri dari develop
+git checkout develop
+git pull origin develop
+git checkout -b feat/issue-7-openapi-cli   # dan feat/issue-8-postman-runner untuk Issue #8
 
-# 4. Setelah selesai membuat openapi.yaml, postman/, dan client.js:
+# 4. Setelah selesai membuat openapi.yaml, client.js, dan/atau postman/:
 git status
 git add openapi.yaml postman/ client.js
-git commit -m "docs(testing-cli): tambah spesifikasi OpenAPI 3.0.3, koleksi Postman Runner, dan pembaruan client.js"
-git push -u origin feat/docs-testing-cli
+git commit -m "docs(testing-cli): tambah spesifikasi OpenAPI 3.0.3, koleksi Postman Runner, dan pembaruan client.js (#7, #8)"
+git push -u origin feat/issue-7-openapi-cli
 ```
-Buka https://github.com/zikriadamm/PROJEK-BASED-2-API-new → klik **Compare & pull request** → arahkan ke `main` → **Create pull request**.
+Buka https://github.com/zikriadamm/PROJEK-BASED-2-API-new → klik **Compare & pull request** → arahkan ke branch **`develop`** → tulis `Closes #7` / `Closes #8` di deskripsi PR → **Create pull request**.

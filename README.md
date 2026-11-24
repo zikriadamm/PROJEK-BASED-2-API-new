@@ -10,60 +10,37 @@ Repositori GitHub: https://github.com/zikriadamm/PROJEK-BASED-2-API-new
 Proyek ini mengembangkan prototipe **Evaluasi Sub-CPMK 4** (*Travel Expense Tracker & Currency Converter API*) menjadi layanan API berstandar industri berlatar **Universitas Tadulako & Sulawesi Tengah** untuk pengelolaan kegiatan riset lapangan dan biaya perjalanan dinas Fakultas Teknik Untad.
 
 ### Ketentuan Teknis yang Dipatuhi
-- Dibangun dengan **Node.js** di atas modul bawaan `http` (**tanpa framework** seperti Express/Fastify).
-- Dependensi tambahan **hanya `graphql`** (sesuai Ketentuan Teknis D.1).
+- Dibangun dengan **Node.js** di atas modul bawaan `node:http` (**tanpa framework** seperti Express/Fastify).
+- Dependensi tambahan **hanya `graphql`** (sesuai Ketentuan Teknis D.1). Pengujian otomatis memakai `node --test` bawaan Node.js.
 - Penyimpanan persisten memakai **file JSON** (`data/activities.json`, `data/expenses.json`, `data/users.json`).
 - Terintegrasi dengan **2 Public API resmi** tanpa API key (**ExchangeRate-API** & **Open-Meteo**) dengan *timeout* 4 detik dan *cache fallback*.
 - Dilengkapi keamanan API Key (`x-api-key`), login bertoken HMAC-SHA256 berbatas waktu, password *hash* `scrypt`, RBAC (`admin` & `mahasiswa`), versioning `/v1` (*Sunset*) + `/v2`, GraphQL `POST /graphql`, OpenAPI 3.0.3, Postman Collection Runner, Client Console CLI, serta Web Dashboard.
 
 ---
 
-## 2. Anggota Kelompok & Pembagian Branch (Anti Merge Conflict)
+## 2. Anggota Kelompok, GitHub Issues & Pembagian Tugas
 
-Setiap anggota mengerjakan **branch dan file eksklusif miliknya sendiri** sehingga tidak terjadi tabrakan file saat digabungkan (*Pull Request*) ke `main`.
+Seluruh pekerjaan dilacak melalui **GitHub Issues** di repositori ini. Setiap anggota mengerjakan **branch fitur sendiri dari `develop`** dan hanya membuat **file eksklusif miliknya** sehingga bebas *merge conflict*.
 
-| No | Nama & Stambuk | Branch Git | File Eksklusif yang Dibuat | Panduan Tugas |
+| No | Nama & Stambuk | Area Tugas & GitHub Issues | File Eksklusif | Panduan Lengkap |
 | :-: | :--- | :--- | :--- | :--- |
-| 1 | **Muhammad Zikri Adam**<br>`F5512530117` | `feat/security-graphql-web` | `src/security.js`, `src/authRouter.js`, `src/graphqlSchema.js`, `public/` | [01-zikri-security-graphql-web.md](docs/tasks/01-zikri-security-graphql-web.md) |
-| 2 | **Lidiya**<br>`F5512530118` | `feat/rest-v2` | `src/v2Router.js` | [02-lidiya-rest-v2.md](docs/tasks/02-lidiya-rest-v2.md) |
-| 3 | **Tabita Creaselia Belicia Theona**<br>`F5512520086` | `feat/public-apis-v1` | `src/publicApis.js`, `src/v1Router.js` | [03-tabita-public-apis-v1.md](docs/tasks/03-tabita-public-apis-v1.md) |
-| 4 | **Trista Sheryl Lambei**<br>`F5512530106` | `feat/docs-testing-cli` | `openapi.yaml`, `postman/`, `client.js` | [04-trista-docs-testing-cli.md](docs/tasks/04-trista-docs-testing-cli.md) |
+| 1 | **Muhammad Zikri Adam**<br>`F5512530117` | Security & Auth (`#1`), GraphQL (`#5`), Web Dashboard (`#6`) | `src/security.js`, `src/authRouter.js`, `src/graphqlSchema.js`, `public/` | [01-zikri-security-graphql-web.md](docs/tasks/01-zikri-security-graphql-web.md) |
+| 2 | **Lidiya**<br>`F5512530118` | REST API v2 Berelasi (`#4`) | `src/v2Router.js` | [02-lidiya-rest-v2.md](docs/tasks/02-lidiya-rest-v2.md) |
+| 3 | **Tabita Creaselia Belicia Theona**<br>`F5512520086` | 2 Public API (`#2`), REST v1 Legacy & Sunset (`#3`) | `src/publicApis.js`, `src/v1Router.js` | [03-tabita-public-apis-v1.md](docs/tasks/03-tabita-public-apis-v1.md) |
+| 4 | **Trista Sheryl Lambei**<br>`F5512530106` | OpenAPI & Client CLI (`#7`), Postman Runner (`#8`) | `openapi.yaml`, `postman/`, `client.js` | [04-trista-docs-testing-cli.md](docs/tasks/04-trista-docs-testing-cli.md) |
 
-> **Aturan penting agar bebas *merge conflict*:**  
-> Jangan mengubah `server.js`, `package.json`, atau file fondasi di `src/` (`config.js`, `httpHelpers.js`, `storage.js`, `validators.js`, `moduleLoader.js`) dari branch fitur. `server.js` sudah dilengkapi `src/moduleLoader.js` yang otomatis mendeteksi dan mengaktifkan file modul milikmu begitu kamu membuatnya!
+### Dokumen Arsitektur & Domain
+- Istilah domain kanonis: [`GLOSSARY.md`](GLOSSARY.md)
+- Catatan keputusan arsitektur: [`docs/adr/0001-arsitektur-modular-http-tanpa-framework.md`](docs/adr/0001-arsitektur-modular-http-tanpa-framework.md)
+- Konfigurasi agen & issue tracker: [`AGENTS.md`](AGENTS.md) & [`docs/agents/`](docs/agents/)
 
----
-
-## 3. Arsitektur Modular
-
-```text
-[ Klien: Postman / Client Console CLI (client.js) / Web Dashboard (public/) ]
-                               |
-                               v  (HTTP + 'x-api-key' & 'Authorization: Bearer')
-                   [ server.js (HTTP Gateway) ]
-                               |
-                       [ moduleLoader.js ]
-         +----------+----------+----------+----------+
-         v          v          v          v          v
-    security.js  v1Router   authRouter  v2Router  graphqlSchema
-    (Zikri)      (Tabita)   (Zikri)     (Lidiya)  (Zikri)
-                               |          |
-                               v          v
-         [ storage.js + validators.js ] [ publicApis.js (Tabita) ]
-           - data/activities.json         - ExchangeRate-API
-           - data/expenses.json           - Open-Meteo API
-           - data/users.json
-```
+> **Aturan anti merge conflict:**  
+> Jangan mengubah `server.js`, `package.json`, atau modul inti (`src/config.js`, `src/httpHelpers.js`, `src/storage.js`, `src/validators.js`, `src/moduleLoader.js`) dari branch fitur. `src/moduleLoader.js` otomatis mengaktifkan file modul milikmu begitu kamu membuatnya.
 
 ---
 
-## 4. Cara Menjalankan Proyek di Laptop Masing-Masing
+## 3. Cara Menjalankan & Menguji di Lokal
 
-### Prasyarat
-- Node.js **v18+** (disarankan v20 atau v22/v24 agar `fetch` & `AbortSignal.timeout` berjalan native).
-- Git terinstal dan sudah login akun GitHub masing-masing.
-
-### Langkah Instalasi
 ```bash
 # 1. Clone repositori
 git clone https://github.com/zikriadamm/PROJEK-BASED-2-API-new.git
@@ -72,48 +49,49 @@ cd PROJEK-BASED-2-API-new
 # 2. Instal dependensi (hanya graphql)
 npm install
 
-# 3. Buat file .env dari template (JANGAN pernah commit .env ke GitHub)
-cp .env.example .env
-# Di Windows PowerShell: Copy-Item .env.example .env
+# 3. Buat file .env dari template (JANGAN commit .env)
+Copy-Item .env.example .env   # Windows PowerShell (atau: cp .env.example .env)
 
 # 4. Jalankan server
 npm start
+
+# 5. Jalankan test otomatis bawaan Node.js
+npm test
 ```
 
-Saat server berjalan di `http://localhost:3000`, buka `http://localhost:3000/api` untuk melihat daftar endpoint dan status modul (`ACTIVE` vs `FALLBACK`).
+Buka `http://localhost:3000/api` untuk melihat status modul (`ACTIVE` vs `FALLBACK`).
 
 ### Akun Demo Bawaan (`data/users.json`)
 | Username | Password | Role | Hak Akses |
 | :--- | :--- | :--- | :--- |
-| `admin` | `admin123` | `admin` | Akses penuh (CRUD kegiatan, CRUD pengeluaran, hapus data, seluruh mutation GraphQL) |
-| `mahasiswa` | `mhs123` | `mahasiswa` | Melihat data & menambah pengeluaran; ditolak (`403 Forbidden`) saat membuat/mengubah/menghapus master kegiatan atau menghapus transaksi |
+| `admin` | `admin123` | `admin` | Akses penuh seluruh endpoint & mutation GraphQL |
+| `mahasiswa` | `mhs123` | `mahasiswa` | Melihat data & menambah/mengubah pengeluaran; `403 Forbidden` pada CRUD `activities` & `DELETE /v2/expenses/:id` |
 
 ---
 
-## 5. Alur Kerja Git & Pull Request Kelompok 2
+## 4. Alur Kerja Git (`feat/issue-*` → `develop` → `main`)
 
-1. Pastikan akun GitHub kamu sudah diundang sebagai **Collaborator** di repo ini.
-2. Set identitas Git atas namamu sendiri (wajib agar commit tercatat atas namamu):
+1. Terima undangan **Collaborator** di GitHub, lalu set identitas Git atas namamu sendiri:
    ```bash
    git config user.name "Nama Lengkap Kamu"
    git config user.email "email-github-kamu@example.com"
    ```
-3. Selalu mulai dari `main` terbaru, lalu buat branch sesuai tabel di atas:
+2. Ambil branch `develop` terbaru dan buat branch sesuai nomor GitHub Issue yang di-assign ke kamu:
    ```bash
-   git checkout main
-   git pull origin main
-   git checkout -b feat/<nama-branch-kamu>
+   git checkout develop
+   git pull origin develop
+   git checkout -b feat/issue-<nomor>-<nama-singkat>
    ```
-4. Kerjakan file eksklusif sesuai panduan di `docs/tasks/`, lalu uji di lokal dengan `npm start`.
-5. Commit dan push branch-mu ke GitHub:
+3. Kerjakan seluruh checklist (*Acceptance criteria*) pada Issue, tambahkan test otomatis di `test/`, lalu verifikasi dengan `npm test` dan `npm start`.
+4. Commit dan push branch-mu ke GitHub:
    ```bash
    git status
-   git add <file-yang-kamu-buat>
-   git commit -m "feat(...): ringkasan perubahan"
-   git push -u origin feat/<nama-branch-kamu>
+   git add <file-eksklusif-dan-test-kamu>
+   git commit -m "feat(<area>): deskripsi singkat (#<nomor>)"
+   git push -u origin feat/issue-<nomor>-<nama-singkat>
    ```
-6. Buka GitHub → klik **Compare & pull request** → arahkan ke branch **`main`** → minta review lalu merge.
-7. Setelah keempat branch tergabung ke `main` dan lolos seluruh pengujian Postman, buat tag rilis akhir:
+5. Buka **Pull Request ke branch `develop`** di GitHub dan cantumkan `Closes #<nomor>` pada deskripsi PR.
+6. Setelah seluruh fitur terintegrasi dan lolos uji di `develop`, buka PR dari `develop` → `main`, lalu buat tag rilis akhir:
    ```bash
    git checkout main
    git pull origin main

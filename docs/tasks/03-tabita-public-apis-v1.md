@@ -118,15 +118,16 @@ Copy-Item .env.example .env
 git config user.name "Tabita Creaselia Belicia Theona"
 git config user.email "tabita.theona@untad.ac.id"   # Ganti dengan email akun GitHub-mu jika berbeda
 
-# 3. Buat branch sendiri dari main
-git checkout main
-git pull origin main
-git checkout -b feat/public-apis-v1
+# 3. Buat branch sendiri dari develop
+git checkout develop
+git pull origin develop
+git checkout -b feat/issue-2-public-apis   # dan feat/issue-3-v1-sunset untuk Issue #3
 
-# 4. Setelah selesai membuat & menguji src/publicApis.js dan src/v1Router.js:
+# 4. Setelah selesai membuat & menguji src/publicApis.js dan/atau src/v1Router.js:
+npm test
 git status
-git add src/publicApis.js src/v1Router.js
-git commit -m "feat(public-apis-v1): integrasi ExchangeRate-API, Open-Meteo fallback, dan REST v1 Sunset header"
-git push -u origin feat/public-apis-v1
+git add src/publicApis.js src/v1Router.js test/
+git commit -m "feat(public-apis-v1): integrasi ExchangeRate-API, Open-Meteo fallback, dan REST v1 Sunset header (#2, #3)"
+git push -u origin feat/issue-2-public-apis
 ```
-Buka https://github.com/zikriadamm/PROJEK-BASED-2-API-new → klik **Compare & pull request** → arahkan ke `main` → **Create pull request**.
+Buka https://github.com/zikriadamm/PROJEK-BASED-2-API-new → klik **Compare & pull request** → arahkan ke branch **`develop`** → tulis `Closes #2` / `Closes #3` di deskripsi PR → **Create pull request**.

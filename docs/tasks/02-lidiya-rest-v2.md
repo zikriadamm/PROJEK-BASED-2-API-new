@@ -112,15 +112,16 @@ Copy-Item .env.example .env
 git config user.name "Lidiya"
 git config user.email "lidiya@untad.ac.id"   # Ganti dengan email akun GitHub-mu jika berbeda
 
-# 3. Buat branch sendiri dari main
-git checkout main
-git pull origin main
-git checkout -b feat/rest-v2
+# 3. Buat branch sendiri dari develop
+git checkout develop
+git pull origin develop
+git checkout -b feat/issue-4-rest-v2
 
-# 4. Setelah selesai membuat & menguji src/v2Router.js:
+# 4. Setelah selesai membuat & menguji src/v2Router.js + test/v2Router.test.js:
+npm test
 git status
-git add src/v2Router.js
-git commit -m "feat(rest-v2): implementasi CRUD activities, expenses berelasi, dan ringkasan anggaran v2"
-git push -u origin feat/rest-v2
+git add src/v2Router.js test/
+git commit -m "feat(rest-v2): implementasi CRUD activities, expenses berelasi, dan ringkasan anggaran v2 (#4)"
+git push -u origin feat/issue-4-rest-v2
 ```
-Buka https://github.com/zikriadamm/PROJEK-BASED-2-API-new → klik **Compare & pull request** → arahkan ke `main` → tulis ringkasan pekerjaanmu → **Create pull request**.
+Buka https://github.com/zikriadamm/PROJEK-BASED-2-API-new → klik **Compare & pull request** → arahkan ke branch **`develop`** → tulis `Closes #4` di deskripsi PR → **Create pull request**.
