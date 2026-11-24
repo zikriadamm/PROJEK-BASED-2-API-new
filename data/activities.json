@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "title": "Survei Geologi Sesar Palu-Koro & Mitigasi Gempa Sigi",
+    "location": "Kabupaten Sigi, Sulawesi Tengah",
+    "latitude": -1.385,
+    "longitude": 119.967,
+    "unit": "Fakultas Teknik - Jurusan Teknik Sipil & Geologi Untad",
+    "leadResearcher": "Tabita Creaselia Belicia Theona",
+    "budgetLimitIDR": 15000000,
+    "startDate": "2026-10-15",
+    "endDate": "2026-10-25",
+    "status": "COMPLETED",
+    "description": "Pengambilan sampel batuan sesar aktif dan pemetaan mikrozonasi kebencanaan pasca gempa 2018 di lembah Palu-Sigi."
+  },
+  {
+    "id": 2,
+    "title": "Riset Pemantauan Sensor Kualitas Air & Pesisir Teluk Palu",
+    "location": "Teluk Palu, Kota Palu, Sulawesi Tengah",
+    "latitude": -0.873,
+    "longitude": 119.865,
+    "unit": "Fakultas Teknik - Jurusan Teknik Elektro & Informatika Untad",
+    "leadResearcher": "Muhammad Zikri Adam",
+    "budgetLimitIDR": 12000000,
+    "startDate": "2026-11-01",
+    "endDate": "2026-11-12",
+    "status": "ACTIVE",
+    "description": "Pemasangan telemetry sensor IoT deteksi pasang surut air laut dan salinitas di pesisir pantai Talise Kota Palu."
+  },
+  {
+    "id": 3,
+    "title": "Studi Banding & Konferensi Internasional Teknik Informatika Tokyo",
+    "location": "Tokyo, Jepang",
+    "latitude": 35.6895,
+    "longitude": 139.6917,
+    "unit": "Fakultas Teknik - Jurusan Teknik Informatika Untad",
+    "leadResearcher": "Lidiya",
+    "budgetLimitIDR": 25000000,
+    "startDate": "2026-10-20",
+    "endDate": "2026-10-28",
+    "status": "COMPLETED",
+    "description": "Partisipasi delegasi riset sistem informasi FT Untad pada konferensi ilmiah di Tokyo, Jepang."
+  }
+]

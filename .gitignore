@@ -1,0 +1,17 @@
+# Dependencies & runtime
+node_modules/
+*.log
+
+# Secrets & environment
+.env
+.env.local
+
+# OS & editor artifacts
+.DS_Store
+Thumbs.db
+
+# Local AI agent configuration (kept locally, excluded from GitHub)
+AGENTS.md
+CLAUDE.md
+docs/agents/
+.scratch/

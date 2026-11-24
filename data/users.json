@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "passwordHash": "001ef9c532461d44b7048c8daf8c5521:31b2c1f58b874b0a72353f426b16b809429be07dc630f7d5dcbd33f6209421ff141c6bd144a259288a170b31a7e74503788dd4bae1c5d01b5c4e921eb8d0bc82",
+    "role": "admin",
+    "fullName": "Admin Keuangan FT Untad",
+    "identifier": "ADMIN-FT-UNTAD",
+    "email": "keuangan.ft@untad.ac.id"
+  },
+  {
+    "id": 2,
+    "username": "mahasiswa",
+    "passwordHash": "9edae7980dacb1f91ba467723aed7deb:b021a6b1e95be9e2af5cf02ab1ebea9b1c432b18d3401d268f6bbd19c1af19782fd0eaf00772a67a9814571e2d613a173c4aae35d37075087c45926e27e0d1fc",
+    "role": "mahasiswa",
+    "fullName": "Muhammad Zikri Adam",
+    "identifier": "F5512530117",
+    "email": "zikri.adam@untad.ac.id"
+  },
+  {
+    "id": 3,
+    "username": "lidiya",
+    "passwordHash": "9b18245d464236111f9f502c3749e1a0:8673baf57a10bbc44092f977ff885df3483d7491849f8666a1a987c45f3250292972faf0d35fc6a2240cc1c68a14be2fc6b854d23a5e2132496b886ebd0196f0",
+    "role": "mahasiswa",
+    "fullName": "Lidiya",
+    "identifier": "F5512530118",
+    "email": "lidiya@untad.ac.id"
+  },
+  {
+    "id": 4,
+    "username": "trista",
+    "passwordHash": "9714e733de5ab188bfd056a6afd11122:d86740f721a33cfb20041924f58cb513d7b8d79e7a6002548351e9655e5c8da98d530f0f4cab8d6d0ee33bae3b4fa3c10924facdeb8e1247b8340b597b436422",
+    "role": "mahasiswa",
+    "fullName": "Trista Sheryl Lambei",
+    "identifier": "F5512530106",
+    "email": "trista.lambei@untad.ac.id"
+  }
+]

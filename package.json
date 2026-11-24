@@ -1,0 +1,25 @@
+{
+  "name": "untad-field-research-expense-api",
+  "version": "2.0.0",
+  "description": "Final Project Rekayasa API (Sub-CPMK 5) - Kelompok 2 TIC - Sistem Manajemen Biaya & Logistik Riset Lapangan Fakultas Teknik Universitas Tadulako",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "client": "node client.js"
+  },
+  "keywords": [
+    "rekayasa-api",
+    "sub-cpmk-5",
+    "untad",
+    "fakultas-teknik",
+    "rest-api",
+    "graphql",
+    "openapi",
+    "postman"
+  ],
+  "author": "Kelompok 2 TIC (Lidiya, Tabita Creaselia Belicia Theona, Muhammad Zikri Adam, Trista Sheryl Lambei)",
+  "license": "ISC",
+  "dependencies": {
+    "graphql": "^16.15.0"
+  }
+}
