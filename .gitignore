@@ -10,8 +10,5 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Local AI agent configuration (kept locally, excluded from GitHub)
-AGENTS.md
-CLAUDE.md
-docs/agents/
+# Local scratch workspace (excluded from GitHub)
 .scratch/
