@@ -5,9 +5,28 @@ const KATEGORI_VALID = ['akomodasi', 'transportasi', 'konsumsi', 'belanja', 'hib
 const MATA_UANG_DIDUKUNG = ['IDR', 'USD', 'JPY', 'EUR', 'SGD', 'MYR', 'GBP', 'AUD'];
 const STATUS_KEGIATAN_VALID = ['PLANNED', 'ACTIVE', 'COMPLETED'];
 
+const EXPENSE_FIELDS = ['activityId', 'title', 'category', 'amount', 'currency', 'date', 'notes'];
+const ACTIVITY_FIELDS = [
+  'title',
+  'location',
+  'budgetLimitIDR',
+  'startDate',
+  'endDate',
+  'latitude',
+  'longitude',
+  'status',
+  'unit',
+  'leadResearcher',
+  'description'
+];
+
 function validasiExpenseV2(body, isUpdate = false) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return 'Body request wajib berupa objek JSON.';
+  }
+
+  if (isUpdate && !EXPENSE_FIELDS.some((k) => body[k] !== undefined)) {
+    return 'Minimal satu field harus disertakan untuk pembaruan pengeluaran.';
   }
 
   const { activityId, title, category, amount, currency, date, notes } = body;
@@ -15,7 +34,10 @@ function validasiExpenseV2(body, isUpdate = false) {
   if (!isUpdate && activityId === undefined) {
     return 'Breaking change v2: Field "activityId" wajib disertakan untuk mereferensikan kegiatan riset.';
   }
-  if (activityId !== undefined && (typeof activityId !== 'number' || Number.isNaN(activityId) || !Number.isInteger(activityId) || activityId <= 0)) {
+  if (
+    activityId !== undefined &&
+    (typeof activityId !== 'number' || Number.isNaN(activityId) || !Number.isInteger(activityId) || activityId <= 0)
+  ) {
     return 'Field "activityId" wajib berupa angka integer positif yang valid.';
   }
 
@@ -61,7 +83,23 @@ function validasiActivityV2(body, isUpdate = false) {
     return 'Body request wajib berupa objek JSON.';
   }
 
-  const { title, location, budgetLimitIDR, startDate, endDate, latitude, longitude, status } = body;
+  if (isUpdate && !ACTIVITY_FIELDS.some((k) => body[k] !== undefined)) {
+    return 'Minimal satu field harus disertakan untuk pembaruan kegiatan.';
+  }
+
+  const {
+    title,
+    location,
+    budgetLimitIDR,
+    startDate,
+    endDate,
+    latitude,
+    longitude,
+    status,
+    unit,
+    leadResearcher,
+    description
+  } = body;
 
   if (!isUpdate || title !== undefined) {
     if (typeof title !== 'string' || title.trim() === '') {
@@ -95,6 +133,15 @@ function validasiActivityV2(body, isUpdate = false) {
   }
   if (status !== undefined && (typeof status !== 'string' || !STATUS_KEGIATAN_VALID.includes(status.toUpperCase()))) {
     return `Field "status" harus salah satu dari: ${STATUS_KEGIATAN_VALID.join(', ')}.`;
+  }
+  if (unit !== undefined && typeof unit !== 'string') {
+    return 'Field "unit" harus berupa teks.';
+  }
+  if (leadResearcher !== undefined && typeof leadResearcher !== 'string') {
+    return 'Field "leadResearcher" harus berupa teks.';
+  }
+  if (description !== undefined && typeof description !== 'string') {
+    return 'Field "description" harus berupa teks.';
   }
 
   return null;

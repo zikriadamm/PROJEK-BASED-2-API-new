@@ -14,6 +14,15 @@ function buildCostObject(amount, currency, rates) {
   };
 }
 
+function enrichExpense(exp, activities, rates) {
+  const act = activities.find((a) => a.id === exp.activityId) || null;
+  return {
+    ...exp,
+    cost: buildCostObject(exp.amount, exp.currency, rates),
+    activity: act ? { id: act.id, title: act.title, location: act.location } : null
+  };
+}
+
 function calculateFinancialSummary(activity, relatedExpenses, rates) {
   const totalSpentIDR = relatedExpenses.reduce((sum, exp) => {
     const conv = getPublicApis().konversiKeIDR(exp.amount, exp.currency, rates);
@@ -336,8 +345,11 @@ async function handleV2Router(req, res, pathname, method, query) {
         const rates = ratesRes?.rates || ratesRes;
 
         let filtered = expenses;
-        if (query?.activityId) {
+        if (query?.activityId !== undefined) {
           const actIdNum = Number(query.activityId);
+          if (!Number.isInteger(actIdNum) || actIdNum <= 0) {
+            return kirimError(res, 400, 'Parameter query "activityId" harus berupa bilangan bulat positif.');
+          }
           filtered = filtered.filter((e) => e.activityId === actIdNum);
         }
         if (query?.category) {
@@ -346,14 +358,7 @@ async function handleV2Router(req, res, pathname, method, query) {
           );
         }
 
-        const data = filtered.map((exp) => {
-          const act = activities.find((a) => a.id === exp.activityId) || null;
-          return {
-            ...exp,
-            cost: buildCostObject(exp.amount, exp.currency, rates),
-            activity: act ? { id: act.id, title: act.title, location: act.location } : null
-          };
-        });
+        const data = filtered.map((exp) => enrichExpense(exp, activities, rates));
 
         return kirimJSON(res, 200, {
           sukses: true,
@@ -371,10 +376,12 @@ async function handleV2Router(req, res, pathname, method, query) {
         const validationError = validasiExpenseV2(body, false);
         if (validationError) return kirimError(res, 400, validationError);
 
-        const [activities, expenses] = await Promise.all([
+        const [activities, expenses, ratesRes] = await Promise.all([
           storage.getActivities(),
-          storage.getExpenses()
+          storage.getExpenses(),
+          getPublicApis().getLiveRates()
         ]);
+        const rates = ratesRes?.rates || ratesRes;
         const act = activities.find((a) => a.id === body.activityId);
         if (!act) {
           return kirimError(
@@ -406,7 +413,7 @@ async function handleV2Router(req, res, pathname, method, query) {
         return kirimJSON(res, 201, {
           sukses: true,
           pesan: 'Pengeluaran riset berhasil ditambahkan.',
-          data: newExpense
+          data: enrichExpense(newExpense, activities, rates)
         });
       }
 
@@ -432,15 +439,10 @@ async function handleV2Router(req, res, pathname, method, query) {
         }
 
         const rates = ratesRes?.rates || ratesRes;
-        const act = activities.find((a) => a.id === expense.activityId) || null;
 
         return kirimJSON(res, 200, {
           sukses: true,
-          data: {
-            ...expense,
-            cost: buildCostObject(expense.amount, expense.currency, rates),
-            activity: act ? { id: act.id, title: act.title, location: act.location } : null
-          }
+          data: enrichExpense(expense, activities, rates)
         });
       }
 
@@ -448,7 +450,12 @@ async function handleV2Router(req, res, pathname, method, query) {
         const auth = getSecurity().requireAuth(req, ['admin', 'mahasiswa']);
         if (!auth.ok) return kirimError(res, auth.status, auth.error);
 
-        const expenses = await storage.getExpenses();
+        const [activities, expenses, ratesRes] = await Promise.all([
+          storage.getActivities(),
+          storage.getExpenses(),
+          getPublicApis().getLiveRates()
+        ]);
+        const rates = ratesRes?.rates || ratesRes;
         const index = expenses.findIndex((e) => e.id === id);
         if (index === -1) {
           return kirimError(res, 404, `Pengeluaran dengan ID ${id} tidak ditemukan.`);
@@ -459,7 +466,6 @@ async function handleV2Router(req, res, pathname, method, query) {
         if (validationError) return kirimError(res, 400, validationError);
 
         if (body.activityId !== undefined) {
-          const activities = await storage.getActivities();
           const act = activities.find((a) => a.id === body.activityId);
           if (!act) {
             return kirimError(
@@ -485,7 +491,7 @@ async function handleV2Router(req, res, pathname, method, query) {
         return kirimJSON(res, 200, {
           sukses: true,
           pesan: 'Pengeluaran berhasil diperbarui.',
-          data: expenses[index]
+          data: enrichExpense(expenses[index], activities, rates)
         });
       }
 
