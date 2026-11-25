@@ -1,0 +1,860 @@
+{
+  "info": {
+    "_postman_id": "b7c2f410-8a5e-4e92-9c3a-2026untadpbl2",
+    "name": "Untad Field Research & Travel Expense API (Sub-CPMK 5)",
+    "description": "Koleksi pengujian otomatis Postman Collection Runner untuk Sistem Manajemen Biaya & Logistik Riset Lapangan FT Universitas Tadulako (Kelompok 2 TIC - Issue #8). Bersifat idempoten dan siap dijalankan berulang kali.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "ganti-dengan-api-key-anda",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mahasiswaToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "createdExpenseId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-01 [Auth] Login Admin & Auto-Save Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Login admin berhasil mengembalikan Bearer token tanpa passwordHash', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(json.tokenType).to.eql('Bearer');",
+              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "  pm.expect(json.user).to.be.an('object');",
+              "  pm.expect(json.user.role).to.eql('admin');",
+              "  pm.expect(json.user).to.not.have.property('passwordHash');",
+              "});",
+              "",
+              "if (json.token) {",
+              "  pm.collectionVariables.set('adminToken', json.token);",
+              "  if (pm.environment && pm.environment.name) {",
+              "    pm.environment.set('adminToken', json.token);",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-02 [Auth] Login Mahasiswa & Auto-Save Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Login mahasiswa berhasil dan token tersimpan', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "  pm.expect(json.user.role).to.eql('mahasiswa');",
+              "});",
+              "",
+              "if (json.token) {",
+              "  pm.collectionVariables.set('mahasiswaToken', json.token);",
+              "  if (pm.environment && pm.environment.name) {",
+              "    pm.environment.set('mahasiswaToken', json.token);",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"mahasiswa\",\n  \"password\": \"mhs123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-03 [Negatif 401] Akses /v2/expenses Tanpa x-api-key",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Request tanpa x-api-key ditolak dengan 401 Unauthorized', function () {",
+              "  pm.response.to.have.status(401);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Payload error 401 sesuai kontrak API', function () {",
+              "  pm.expect(json.sukses).to.eql(false);",
+              "  pm.expect(json.status).to.eql(401);",
+              "  pm.expect(json.error).to.include('x-api-key');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-04 [Legacy v1] GET /v1/expenses & Verifikasi Header Sunset",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Header migrasi RFC 8594 (Sunset, Deprecation, Link) tersedia', function () {",
+              "  pm.response.to.have.header('Sunset');",
+              "  pm.response.to.have.header('Deprecation');",
+              "  pm.response.to.have.header('Link');",
+              "  pm.expect(pm.response.headers.get('Deprecation')).to.eql('true');",
+              "  pm.expect(pm.response.headers.get('Link')).to.include('/v2/expenses');",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Format data v1 datar dengan konversi amountIDR', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(json.data).to.be.an('array').and.not.empty;",
+              "  pm.expect(json.data[0]).to.have.property('amountIDR');",
+              "  pm.expect(json.data[0]).to.not.have.property('cost');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/expenses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v1",
+            "expenses"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-05 [REST v2] GET /v2/activities (FinancialSummary & Cuaca)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Setiap activity memuat financialSummary dan currentWeather', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(json.data).to.be.an('array').and.not.empty;",
+              "  const first = json.data[0];",
+              "  pm.expect(first).to.have.property('financialSummary');",
+              "  pm.expect(['AMAN', 'WASPADA', 'MELEBIHI_BATAS']).to.include(first.financialSummary.budgetStatus);",
+              "  pm.expect(first).to.have.property('currentWeather');",
+              "  pm.expect(first.currentWeather).to.have.property('temperatureFormatted');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v2/activities",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "activities"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-06 [Negatif 400] POST /v2/expenses Tanpa activityId (Breaking Change v2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('POST /v2/expenses tanpa activityId ditolak dengan 400 Bad Request', function () {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Pesan error menjelaskan kewajiban field activityId', function () {",
+              "  pm.expect(json.sukses).to.eql(false);",
+              "  pm.expect(json.status).to.eql(400);",
+              "  pm.expect(json.error).to.include('activityId');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Pengeluaran Tanpa ActivityId\",\n  \"category\": \"transportasi\",\n  \"amount\": 50000,\n  \"currency\": \"IDR\",\n  \"date\": \"2026-11-25\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-07 [REST v2] POST /v2/expenses Baru (Token Mahasiswa) & Simpan ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Pengeluaran baru berelasi ke activityId=2 dengan Cost Object IDR', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(json.data).to.be.an('object');",
+              "  pm.expect(json.data.id).to.be.a('number');",
+              "  pm.expect(json.data.activityId).to.eql(2);",
+              "  pm.expect(json.data.cost).to.be.an('object');",
+              "  pm.expect(json.data.cost.convertedIDR).to.be.above(0);",
+              "  pm.expect(json.data.activity.id).to.eql(2);",
+              "});",
+              "",
+              "if (json.data && json.data.id) {",
+              "  pm.collectionVariables.set('createdExpenseId', String(json.data.id));",
+              "  if (pm.environment && pm.environment.name) {",
+              "    pm.environment.set('createdExpenseId', String(json.data.id));",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{mahasiswaToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activityId\": 2,\n  \"title\": \"Uji Postman Runner Sensor Teluk Palu\",\n  \"category\": \"belanja\",\n  \"amount\": 25,\n  \"currency\": \"USD\",\n  \"date\": \"2026-11-25\",\n  \"notes\": \"Dibuat otomatis oleh Postman Collection Runner\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-08 [REST v2] PUT /v2/expenses/:id (Update Pengeluaran Uji)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Nominal dan catatan pengeluaran berhasil diperbarui', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(json.data.amount).to.eql(30);",
+              "  pm.expect(json.data.notes).to.eql('Diperbarui oleh Postman Runner');",
+              "  pm.expect(json.data.cost.convertedIDR).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{mahasiswaToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 30,\n  \"notes\": \"Diperbarui oleh Postman Runner\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses/{{createdExpenseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses",
+            "{{createdExpenseId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-09 [Negatif 403 RBAC] Mahasiswa Ditolak DELETE /v2/expenses/:id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Role mahasiswa ditolak menghapus pengeluaran dengan 403 Forbidden', function () {",
+              "  pm.response.to.have.status(403);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Pesan error RBAC 403 sesuai kontrak', function () {",
+              "  pm.expect(json.sukses).to.eql(false);",
+              "  pm.expect(json.status).to.eql(403);",
+              "  pm.expect(json.error).to.include('Akses ditolak');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{mahasiswaToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses/{{createdExpenseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses",
+            "{{createdExpenseId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-10 [REST v2 Cleanup] Admin Hapus Expense Uji (Idempoten)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const expectedId = Number(pm.collectionVariables.get('createdExpenseId'));",
+              "pm.test('Pengeluaran uji berhasil dihapus kembali oleh admin', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(Number(json.data.id)).to.eql(expectedId);",
+              "});",
+              "",
+              "pm.collectionVariables.unset('createdExpenseId');",
+              "if (pm.environment && pm.environment.name) {",
+              "  pm.environment.unset('createdExpenseId');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses/{{createdExpenseId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses",
+            "{{createdExpenseId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-11 [Negatif 404] GET /v2/expenses/999999 Tidak Ditemukan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('ID yang tidak ada mengembalikan 404 Not Found', function () {",
+              "  pm.response.to.have.status(404);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Payload error 404 valid', function () {",
+              "  pm.expect(json.sukses).to.eql(false);",
+              "  pm.expect(json.status).to.eql(404);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses/999999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses",
+            "999999"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-12 [REST v2] GET /v2/expenses/summary (Ringkasan & Public API)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Ringkasan umum, kategori, kegiatan, kurs, dan cuaca Untad lengkap', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "  pm.expect(json.ringkasanUmum).to.be.an('object');",
+              "  pm.expect(json.rekapPerKategori).to.be.an('object');",
+              "  pm.expect(json.rekapPerKegiatan).to.be.an('array').and.not.empty;",
+              "  pm.expect(json.sumberKurs.provider).to.eql('ExchangeRate-API');",
+              "  pm.expect(json.cuacaAcuanUntad.lokasi).to.include('Untad');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v2/expenses/summary",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "expenses",
+            "summary"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-13 [GraphQL] POST /graphql Query Activities & Expenses",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code adalah 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('GraphQL mengembalikan data activities berelasi tanpa errors', function () {",
+              "  pm.expect(json).to.not.have.property('errors');",
+              "  pm.expect(json.data).to.be.an('object');",
+              "  pm.expect(json.data.activities).to.be.an('array').and.not.empty;",
+              "  pm.expect(json.data.activities[0]).to.have.property('financialSummary');",
+              "  pm.expect(json.data.activities[0]).to.have.property('expenses');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"query { activities { id title status financialSummary { totalSpentIDR budgetStatus } currentWeather { temperatureFormatted condition } expenses { id title cost { formattedIDR } } } }\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/graphql",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "graphql"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-14 [Auth] Logout Mahasiswa & Bersihkan Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout mahasiswa berhasil (200 OK)', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Token mahasiswa berhasil dicabut', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "});",
+              "",
+              "pm.collectionVariables.unset('mahasiswaToken');",
+              "if (pm.environment && pm.environment.name) {",
+              "  pm.environment.unset('mahasiswaToken');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{mahasiswaToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v2/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "auth",
+            "logout"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC-15 [Auth] Logout Admin & Bersihkan Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Logout admin berhasil (200 OK)', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Token admin berhasil dicabut', function () {",
+              "  pm.expect(json.sukses).to.eql(true);",
+              "});",
+              "",
+              "pm.collectionVariables.unset('adminToken');",
+              "if (pm.environment && pm.environment.name) {",
+              "  pm.environment.unset('adminToken');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v2/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v2",
+            "auth",
+            "logout"
+          ]
+        }
+      }
+    }
+  ]
+}
