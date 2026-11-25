@@ -138,6 +138,117 @@
 
   const $ = (id) => document.getElementById(id);
 
+  function canAnimate() {
+    return (
+      typeof window.gsap !== 'undefined' &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+  }
+
+  function animateViewEnter(panel) {
+    if (!canAnimate() || !panel) return;
+    const targets = panel.querySelectorAll('.hero-banner, .dark-strip, .card');
+    if (!targets.length) return;
+    window.gsap.fromTo(
+      targets,
+      { y: 12, opacity: 0 },
+      {
+        y: 0,
+        opacity: 1,
+        duration: 0.28,
+        stagger: 0.04,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        clearProps: 'transform,opacity'
+      }
+    );
+  }
+
+  function animateCountUp(el, targetValue, formatter) {
+    if (!el) return;
+    const end = Number(targetValue) || 0;
+    if (!canAnimate() || end === 0) {
+      el.textContent = formatter(end);
+      return;
+    }
+    const counter = { val: 0 };
+    window.gsap.to(counter, {
+      val: end,
+      duration: 0.55,
+      ease: 'power2.out',
+      overwrite: 'auto',
+      onUpdate: () => {
+        el.textContent = formatter(counter.val);
+      },
+      onComplete: () => {
+        el.textContent = formatter(end);
+      }
+    });
+  }
+
+  function animateBars(container) {
+    if (!canAnimate() || !container) return;
+    const sticks = container.querySelectorAll('.bar-stick');
+    if (!sticks.length) return;
+    window.gsap.fromTo(
+      sticks,
+      { scaleY: 0, transformOrigin: 'bottom center' },
+      {
+        scaleY: 1,
+        duration: 0.36,
+        stagger: 0.045,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        clearProps: 'transform'
+      }
+    );
+  }
+
+  function animateBarcodeTicks(container) {
+    if (!canAnimate() || !container) return;
+    const ticks = container.querySelectorAll('.tick.filled, .tick.filled-hi');
+    if (!ticks.length) return;
+    window.gsap.fromTo(
+      ticks,
+      { scaleY: 0.25, opacity: 0.35, transformOrigin: 'bottom center' },
+      {
+        scaleY: 1,
+        opacity: 1,
+        duration: 0.24,
+        stagger: 0.012,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        clearProps: 'transform,opacity'
+      }
+    );
+  }
+
+  function animateToast(el) {
+    if (!canAnimate() || !el) return;
+    window.gsap.fromTo(
+      el,
+      { y: -8, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.22, ease: 'power3.out', overwrite: 'auto', clearProps: 'transform,opacity' }
+    );
+  }
+
+  function animateDialogOpen(dialogEl) {
+    if (!canAnimate() || !dialogEl) return;
+    window.gsap.fromTo(
+      dialogEl,
+      { y: 10, scale: 0.97, opacity: 0 },
+      {
+        y: 0,
+        scale: 1,
+        opacity: 1,
+        duration: 0.22,
+        ease: 'power3.out',
+        overwrite: 'auto',
+        clearProps: 'transform,opacity'
+      }
+    );
+  }
+
   function todayIsoDate() {
     const now = new Date();
     const y = now.getFullYear();
@@ -192,6 +303,7 @@
     }
     $('toastMessage').textContent = message;
     $('toast').className = `toast toast-${tone}`;
+    animateToast($('toast'));
     if (tone === 'ok') {
       state.toastTimer = setTimeout(hideToast, 5000);
     }
@@ -244,9 +356,13 @@
       btn.setAttribute('aria-selected', String(active));
     });
 
+    let activePanel = null;
     document.querySelectorAll('.view-panel').forEach((panel) => {
-      panel.classList.toggle('active', panel.id === `view-${viewName}`);
+      const isCurrent = panel.id === `view-${viewName}`;
+      panel.classList.toggle('active', isCurrent);
+      if (isCurrent) activePanel = panel;
     });
+    animateViewEnter(activePanel);
   }
 
   function saveSession() {
@@ -319,6 +435,7 @@
         `;
       })
       .join('');
+    animateBars(container);
   }
 
   function renderFulfillmentCard() {
@@ -334,7 +451,7 @@
 
     $('fulfillActivities').textContent = String(acts.length);
     $('fulfillExpenses').textContent = String(totalTx);
-    $('fulfillPct').textContent = `${pct}%`;
+    animateCountUp($('fulfillPct'), pct, (v) => `${v.toFixed(1).replace(/\.0$/, '')}%`);
 
     const totalTicks = 32;
     const filledTicks = Math.min(totalTicks, Math.max(pct > 0 ? 1 : 0, Math.round((pct / 100) * totalTicks)));
@@ -345,6 +462,7 @@
       return '<span class="tick"></span>';
     }).join('');
     $('barcodeBar').innerHTML = barHtml;
+    animateBarcodeTicks($('barcodeBar'));
 
     const statusText = pct > 100 ? 'MELEBIHI BATAS' : pct >= 80 ? 'WASPADA' : 'AMAN';
     $('fulfillBudgetLabel').textContent = `Status: ${statusText} (Rp ${totalSpent.toLocaleString('id-ID')})`;
@@ -367,9 +485,12 @@
     const plafon = Number(r.totalPlafonIDR) || 0;
     const pct = plafon > 0 ? Number(((spent / plafon) * 100).toFixed(1)) : 0;
 
-    $('kpiSpent').textContent = r.totalPengeluaranFormatted || 'Rp 0';
+    const remaining = Number(r.sisaAnggaranTotalIDR ?? Math.max(0, plafon - spent)) || 0;
+    const fmtIdr = (v) => `Rp ${Math.round(v).toLocaleString('id-ID')}`;
+
+    animateCountUp($('kpiSpent'), spent, fmtIdr);
     $('kpiPlafon').textContent = `Plafon: ${r.totalPlafonFormatted || 'Rp 0'}`;
-    $('kpiRemaining').textContent = r.sisaAnggaranTotalFormatted || 'Rp 0';
+    animateCountUp($('kpiRemaining'), remaining, fmtIdr);
     $('kpiUtilBadge').textContent = `${pct}%`;
     $('kpiProgressFill').style.width = `${Math.min(100, pct)}%`;
 
@@ -628,6 +749,7 @@
       $('expenseDateInput').value = todayIsoDate();
     }
     $('expenseDialog').showModal();
+    animateDialogOpen($('expenseDialog'));
   }
 
   function openDeleteConfirm(id) {
@@ -638,6 +760,7 @@
       : `pengeluaran #${id}`;
     $('confirmMessage').textContent = `Hapus ${detail}? Tindakan ini tidak dapat dibatalkan.`;
     $('confirmDialog').showModal();
+    animateDialogOpen($('confirmDialog'));
   }
 
   async function handleLogin(e) {
@@ -874,6 +997,7 @@
     $('btnOpenActivityModal').addEventListener('click', () => {
       $('activityModalErr').classList.add('hidden');
       $('activityDialog').showModal();
+      animateDialogOpen($('activityDialog'));
     });
     $('btnOpenExpenseModal').addEventListener('click', () => openExpenseModal());
     document.querySelectorAll('[data-close-dialog]').forEach((btn) => {
