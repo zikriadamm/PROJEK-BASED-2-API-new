@@ -559,7 +559,7 @@ code, pre { font-family: var(--font-mono); }
 }
 
 .hero-eyebrow {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 5px 11px;
@@ -857,7 +857,7 @@ code, pre { font-family: var(--font-mono); }
 }
 
 .dark-eyebrow {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.78);

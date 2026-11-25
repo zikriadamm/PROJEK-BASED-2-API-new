@@ -367,15 +367,15 @@
           </div>
         </article>
 
-        <article class="card">
-          <div class="dark-strip compact">
-            <div>
-              <h2>Audit Versioning: <code>GET /v1/expenses</code> vs <code>GET /v2/expenses</code></h2>
-              <p>Verifikasi header RFC 8594 (<code>Sunset</code>, <code>Deprecation</code>, <code>Link</code>) dan breaking change objek <code>cost</code>.</p>
-            </div>
-            <button id="btnRunVersionAudit" class="btn btn-lime" type="button">Jalankan Audit /v1 vs /v2</button>
+        <div class="dark-strip compact">
+          <div>
+            <h2>Audit Versioning: <code>GET /v1/expenses</code> vs <code>GET /v2/expenses</code></h2>
+            <p>Verifikasi header RFC 8594 (<code>Sunset</code>, <code>Deprecation</code>, <code>Link</code>) dan breaking change objek <code>cost</code>.</p>
           </div>
+          <button id="btnRunVersionAudit" class="btn btn-lime" type="button">Jalankan Audit /v1 vs /v2</button>
+        </div>
 
+        <article class="card">
           <div class="headers-grid">
             <div class="header-tile"><span>Status /v1</span><strong id="auditV1Status">-</strong></div>
             <div class="header-tile"><span>Sunset</span><strong id="auditSunset">-</strong></div>
