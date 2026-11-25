@@ -131,10 +131,42 @@
     actStatusFilter: '',
     feedCategory: '',
     fulfillScope: 'ALL',
-    inspectedRole: 'admin'
+    inspectedRole: 'admin',
+    pendingDeleteId: null,
+    toastTimer: null
   };
 
   const $ = (id) => document.getElementById(id);
+
+  function todayIsoDate() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function renderCalendarStrip() {
+    const now = new Date();
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    $('calendarMonthTitle').textContent = `${months[now.getMonth()]}, ${now.getFullYear()}`;
+
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - now.getDay());
+
+    $('weekStrip').innerHTML = days
+      .map((label, idx) => {
+        const d = new Date(sunday);
+        d.setDate(sunday.getDate() + idx);
+        const isToday = d.toDateString() === now.toDateString();
+        return `<div class="day-pill${isToday ? ' today' : ''}"><span>${label}</span><strong>${d.getDate()}</strong>${isToday ? '<i></i>' : ''}</div>`;
+      })
+      .join('');
+  }
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -145,10 +177,37 @@
       .replace(/'/g, '&#39;');
   }
 
+  function hideToast() {
+    if (state.toastTimer) {
+      clearTimeout(state.toastTimer);
+      state.toastTimer = null;
+    }
+    $('toast').className = 'toast hidden';
+  }
+
   function showToast(message, tone = 'ok') {
-    const el = $('toast');
-    el.textContent = message;
-    el.className = `toast toast-${tone}`;
+    if (state.toastTimer) {
+      clearTimeout(state.toastTimer);
+      state.toastTimer = null;
+    }
+    $('toastMessage').textContent = message;
+    $('toast').className = `toast toast-${tone}`;
+    if (tone === 'ok') {
+      state.toastTimer = setTimeout(hideToast, 5000);
+    }
+  }
+
+  async function withButtonLoading(btn, loadingLabel, fn) {
+    if (!btn) return fn();
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = loadingLabel;
+    try {
+      return await fn();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   function getApiKey() {
@@ -411,7 +470,7 @@
     const prevFilter = filterSelect.value;
 
     const options = allActivities
-      .map((a) => `<option value="${escapeHtml(a.id)}">#${escapeHtml(a.id)} — ${escapeHtml(a.title)}</option>`)
+      .map((a) => `<option value="${escapeHtml(a.id)}">#${escapeHtml(a.id)} - ${escapeHtml(a.title)}</option>`)
       .join('');
 
     filterSelect.innerHTML = `<option value="">Semua Kegiatan</option>${options}`;
@@ -492,7 +551,10 @@
           <td class="num"><strong>${escapeHtml(exp.cost?.formattedIDR || '—')}</strong></td>
           <td>${escapeHtml(exp.submittedBy || '-')}</td>
           <td>
-            <button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
+            <div class="row-actions">
+              <button class="btn btn-table-edit" type="button" data-edit-expense="${escapeHtml(exp.id)}">Edit</button>
+              <button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
+            </div>
           </td>
         </tr>
       `)
@@ -512,7 +574,7 @@
 
   function renderRbacMatrix(role) {
     state.inspectedRole = role;
-    $('rbacMatrixTitle').textContent = `Matriks Izin — Role ${role === 'admin' ? 'Admin' : 'Mahasiswa'}`;
+    $('rbacMatrixTitle').textContent = `Matriks Izin: Role ${role === 'admin' ? 'Admin' : 'Mahasiswa'}`;
     $('rbacRolePill').textContent = role;
 
     document.querySelectorAll('.role-card').forEach((card) => {
@@ -545,27 +607,62 @@
     await Promise.all([loadSummary(), loadActivities(), loadExpenses()]);
   }
 
+  function openExpenseModal(expense = null) {
+    $('expenseModalErr').classList.add('hidden');
+    if (expense) {
+      $('expenseEditId').value = String(expense.id);
+      $('expenseModalTitle').innerHTML = `Edit Pengeluaran #${escapeHtml(expense.id)} (<code>PUT /v2/expenses/${escapeHtml(expense.id)}</code>)`;
+      $('btnSubmitExpense').textContent = 'Perbarui Pengeluaran';
+      $('expenseActivitySelect').value = String(expense.activityId);
+      $('expenseTitleInput').value = expense.title || '';
+      $('expenseCategoryInput').value = String(expense.category || 'lainnya').toLowerCase();
+      $('expenseDateInput').value = expense.date || todayIsoDate();
+      $('expenseAmountInput').value = String(expense.amount ?? '');
+      $('expenseCurrencyInput').value = String(expense.currency || 'IDR').toUpperCase();
+      $('expenseNotesInput').value = expense.notes || '';
+    } else {
+      $('expenseForm').reset();
+      $('expenseEditId').value = '';
+      $('expenseModalTitle').innerHTML = 'Tambah Pengeluaran Riset (<code>POST /v2/expenses</code>)';
+      $('btnSubmitExpense').textContent = 'Simpan Pengeluaran';
+      $('expenseDateInput').value = todayIsoDate();
+    }
+    $('expenseDialog').showModal();
+  }
+
+  function openDeleteConfirm(id) {
+    const exp = state.expenses.find((e) => Number(e.id) === Number(id));
+    state.pendingDeleteId = Number(id);
+    const detail = exp
+      ? `"${exp.title}" (${exp.cost?.formattedIDR || `${exp.amount} ${exp.currency}`})`
+      : `pengeluaran #${id}`;
+    $('confirmMessage').textContent = `Hapus ${detail}? Tindakan ini tidak dapat dibatalkan.`;
+    $('confirmDialog').showModal();
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     const username = $('loginUsername').value.trim();
     const password = $('loginPassword').value;
 
-    const res = await apiRequest('/v2/auth/login', {
-      method: 'POST',
-      body: { username, password }
+    await withButtonLoading($('btnSubmitLogin'), 'Memproses...', async () => {
+      const res = await apiRequest('/v2/auth/login', {
+        method: 'POST',
+        body: { username, password }
+      });
+
+      if (!res.ok) {
+        showToast(`Login gagal (${res.status}): ${res.data?.error || 'Kredensial tidak valid.'}`, 'err');
+        return;
+      }
+
+      state.token = res.data.token;
+      state.user = res.data.user;
+      saveSession();
+      renderSession();
+      showToast(`Login berhasil sebagai ${state.user.fullName} (role: ${state.user.role}).`, 'ok');
+      await refreshAll();
     });
-
-    if (!res.ok) {
-      showToast(`Login gagal (${res.status}): ${res.data?.error || 'Kredensial tidak valid.'}`, 'err');
-      return;
-    }
-
-    state.token = res.data.token;
-    state.user = res.data.user;
-    saveSession();
-    renderSession();
-    showToast(`Login berhasil sebagai ${state.user.fullName} (role: ${state.user.role}).`, 'ok');
-    await refreshAll();
   }
 
   async function handleLogout() {
@@ -592,26 +689,30 @@
       description: String(fd.get('description') || '').trim() || undefined
     };
 
-    const res = await apiRequest('/v2/activities', { method: 'POST', auth: true, body: payload });
-    if (!res.ok) {
-      const tone = res.status === 403 ? 'warn' : 'err';
-      const msg = `Gagal menambah kegiatan (${res.status}): ${res.data?.error || 'Akses ditolak.'}`;
-      $('activityModalErr').textContent = msg;
-      $('activityModalErr').className = `toast toast-${tone}`;
-      showToast(msg, tone);
-      return;
-    }
+    await withButtonLoading($('btnSubmitActivity'), 'Menyimpan...', async () => {
+      const res = await apiRequest('/v2/activities', { method: 'POST', auth: true, body: payload });
+      if (!res.ok) {
+        const tone = res.status === 403 ? 'warn' : 'err';
+        const msg = `Gagal menambah kegiatan (${res.status}): ${res.data?.error || 'Akses ditolak.'}`;
+        $('activityModalErr').textContent = msg;
+        $('activityModalErr').className = `toast toast-${tone}`;
+        showToast(msg, tone);
+        return;
+      }
 
-    $('activityModalErr').classList.add('hidden');
-    $('activityDialog').close();
-    e.target.reset();
-    showToast(`Kegiatan #${res.data.data.id} berhasil ditambahkan.`, 'ok');
-    await refreshAll();
+      $('activityModalErr').classList.add('hidden');
+      $('activityDialog').close();
+      e.target.reset();
+      showToast(`Kegiatan #${res.data.data.id} berhasil ditambahkan.`, 'ok');
+      await refreshAll();
+    });
   }
 
   async function handleCreateExpense(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const editId = String(fd.get('editId') || '').trim();
+    const isEdit = editId !== '';
     const payload = {
       activityId: Number(fd.get('activityId')),
       title: String(fd.get('title') || '').trim(),
@@ -622,35 +723,48 @@
       notes: String(fd.get('notes') || '').trim()
     };
 
-    const res = await apiRequest('/v2/expenses', { method: 'POST', auth: true, body: payload });
-    if (!res.ok) {
-      const msg = `Gagal menambah pengeluaran (${res.status}): ${res.data?.error || 'Periksa input / login.'}`;
-      $('expenseModalErr').textContent = msg;
-      $('expenseModalErr').className = 'toast toast-err';
-      showToast(msg, 'err');
-      return;
-    }
+    const url = isEdit ? `/v2/expenses/${editId}` : '/v2/expenses';
+    const method = isEdit ? 'PUT' : 'POST';
 
-    $('expenseModalErr').classList.add('hidden');
-    $('expenseDialog').close();
-    e.target.reset();
-    showToast(`Pengeluaran #${res.data.data.id} disimpan (${res.data.data.cost?.formattedIDR || ''}).`, 'ok');
-    await refreshAll();
+    await withButtonLoading($('btnSubmitExpense'), isEdit ? 'Memperbarui...' : 'Menyimpan...', async () => {
+      const res = await apiRequest(url, { method, auth: true, body: payload });
+      if (!res.ok) {
+        const msg = `Gagal ${isEdit ? 'memperbarui' : 'menambah'} pengeluaran (${res.status}): ${res.data?.error || 'Periksa input / login.'}`;
+        $('expenseModalErr').textContent = msg;
+        $('expenseModalErr').className = 'toast toast-err';
+        showToast(msg, 'err');
+        return;
+      }
+
+      $('expenseModalErr').classList.add('hidden');
+      $('expenseDialog').close();
+      e.target.reset();
+      $('expenseEditId').value = '';
+      showToast(
+        `Pengeluaran #${res.data.data.id} ${isEdit ? 'diperbarui' : 'disimpan'} (${res.data.data.cost?.formattedIDR || ''}).`,
+        'ok'
+      );
+      await refreshAll();
+    });
   }
 
   async function handleDeleteExpense(id) {
-    const res = await apiRequest(`/v2/expenses/${id}`, { method: 'DELETE', auth: true });
-    if (!res.ok) {
-      const tone = res.status === 403 ? 'warn' : 'err';
-      const hint =
-        res.status === 403
-          ? 'RBAC aktif (403 Forbidden): hanya role admin yang boleh menghapus pengeluaran.'
-          : res.data?.error || 'Gagal menghapus pengeluaran.';
-      showToast(`${hint} (HTTP ${res.status})`, tone);
-      return;
-    }
-    showToast(`Pengeluaran #${id} berhasil dihapus.`, 'ok');
-    await refreshAll();
+    await withButtonLoading($('btnConfirmDelete'), 'Menghapus...', async () => {
+      const res = await apiRequest(`/v2/expenses/${id}`, { method: 'DELETE', auth: true });
+      $('confirmDialog').close();
+      state.pendingDeleteId = null;
+      if (!res.ok) {
+        const tone = res.status === 403 ? 'warn' : 'err';
+        const hint =
+          res.status === 403
+            ? 'RBAC aktif (403 Forbidden): hanya role admin yang boleh menghapus pengeluaran.'
+            : res.data?.error || 'Gagal menghapus pengeluaran.';
+        showToast(`${hint} (HTTP ${res.status})`, tone);
+        return;
+      }
+      showToast(`Pengeluaran #${id} berhasil dihapus.`, 'ok');
+      await refreshAll();
+    });
   }
 
   async function handleRunGraphQL() {
@@ -712,9 +826,15 @@
       showToast('Data dashboard diperbarui dari API.', 'ok');
     });
 
-    $('btnHeroAddExpense').addEventListener('click', () => {
-      $('expenseModalErr').classList.add('hidden');
-      $('expenseDialog').showModal();
+    $('btnHeroAddExpense').addEventListener('click', () => openExpenseModal());
+
+    $('toastClose').addEventListener('click', hideToast);
+
+    $('btnToggleApiKey').addEventListener('click', () => {
+      const input = $('apiKeyInput');
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      $('btnToggleApiKey').textContent = showing ? 'Lihat' : 'Sembunyi';
     });
 
     $('btnQuickAudit').addEventListener('click', async () => {
@@ -755,10 +875,7 @@
       $('activityModalErr').classList.add('hidden');
       $('activityDialog').showModal();
     });
-    $('btnOpenExpenseModal').addEventListener('click', () => {
-      $('expenseModalErr').classList.add('hidden');
-      $('expenseDialog').showModal();
-    });
+    $('btnOpenExpenseModal').addEventListener('click', () => openExpenseModal());
     document.querySelectorAll('[data-close-dialog]').forEach((btn) => {
       btn.addEventListener('click', () => $(btn.dataset.closeDialog).close());
     });
@@ -767,8 +884,18 @@
     $('expenseForm').addEventListener('submit', handleCreateExpense);
 
     $('expensesTableBody').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-delete-expense]');
-      if (btn) handleDeleteExpense(Number(btn.dataset.deleteExpense));
+      const editBtn = e.target.closest('[data-edit-expense]');
+      if (editBtn) {
+        const exp = state.expenses.find((item) => Number(item.id) === Number(editBtn.dataset.editExpense));
+        if (exp) openExpenseModal(exp);
+        return;
+      }
+      const delBtn = e.target.closest('[data-delete-expense]');
+      if (delBtn) openDeleteConfirm(Number(delBtn.dataset.deleteExpense));
+    });
+
+    $('btnConfirmDelete').addEventListener('click', () => {
+      if (state.pendingDeleteId !== null) handleDeleteExpense(state.pendingDeleteId);
     });
 
     document.querySelectorAll('[data-gql-preset]').forEach((btn) => {
@@ -813,6 +940,7 @@
   // Bootstrap
   const savedApiKey = sessionStorage.getItem('untad_api_key_v2');
   if (savedApiKey) $('apiKeyInput').value = savedApiKey;
+  renderCalendarStrip();
   restoreSession();
   renderSession();
   renderRbacMatrix(state.user?.role === 'mahasiswa' ? 'mahasiswa' : 'admin');

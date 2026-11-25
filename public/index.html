@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Untad Field Research &amp; Expense API — Dashboard</title>
+  <title>Untad Field Research &amp; Expense API | Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/public/style.css">
 </head>
 <body>
-  <!-- Ambient Mesh Orbs for True Glassmorphism Refraction -->
+  <!-- Ambient Mesh Orbs for Frosted Glassmorphism Refraction -->
   <div class="bg-mesh" aria-hidden="true">
     <span class="orb orb-1"></span>
     <span class="orb orb-2"></span>
@@ -19,7 +19,7 @@
   </div>
 
   <div class="app-shell">
-    <!-- Floating Dark-Indigo Icon-Rail Sidebar (Admin V15 Style) -->
+    <!-- Floating Dark-Indigo Icon-Rail Sidebar -->
     <aside class="icon-rail" aria-label="Navigasi Utama">
       <div class="rail-brand" title="Untad FT · Kelompok 2 TIC">
         <span>U</span>
@@ -63,15 +63,19 @@
           <h1 id="viewTitle" class="page-heading">Dashboard Overview</h1>
         </div>
         <div class="top-actions">
-          <label class="key-pill" for="apiKeyInput">
-            <span class="key-label">x-api-key</span>
-            <input id="apiKeyInput" type="text" value="ganti-dengan-api-key-anda" placeholder="API_KEY dari .env" autocomplete="off" spellcheck="false">
-          </label>
+          <div class="key-pill">
+            <label class="key-label" for="apiKeyInput">x-api-key</label>
+            <input id="apiKeyInput" type="password" value="ganti-dengan-api-key-anda" placeholder="API_KEY dari .env" autocomplete="off" spellcheck="false">
+            <button id="btnToggleApiKey" class="key-toggle" type="button" aria-label="Tampilkan atau sembunyikan API Key">Lihat</button>
+          </div>
           <button id="sessionBadge" class="session-pill session-guest" type="button" data-jump-view="security">Belum Login</button>
         </div>
       </header>
 
-      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+      <div id="toast" class="toast hidden" role="status" aria-live="polite">
+        <span id="toastMessage"></span>
+        <button id="toastClose" class="toast-close" type="button" aria-label="Tutup notifikasi">&times;</button>
+      </div>
 
       <!-- ==================== VIEW 1: OVERVIEW BENTO GRID ==================== -->
       <section id="view-overview" class="view-panel active">
@@ -137,17 +141,17 @@
                   <span id="kpiUtilBadge" class="pill pill-emerald">0%</span>
                 </div>
                 <strong id="kpiSpent" class="kpi-big">Memuat...</strong>
-                <p id="kpiPlafon" class="kpi-caption">Plafon: —</p>
+                <p id="kpiPlafon" class="kpi-caption">Plafon: -</p>
                 <div class="progress-track">
                   <div id="kpiProgressFill" class="progress-fill" style="width:0%"></div>
                 </div>
                 <div class="kpi-foot">
                   <span>Sisa Anggaran</span>
-                  <strong id="kpiRemaining">—</strong>
+                  <strong id="kpiRemaining">-</strong>
                 </div>
               </article>
 
-              <!-- Card 3: Sebaran Kategori (SVG Gradient Bar Chart) -->
+              <!-- Card 3: Sebaran Kategori -->
               <article class="card">
                 <div class="card-top">
                   <h3>Kategori Biaya</h3>
@@ -187,7 +191,6 @@
                   </div>
                 </div>
 
-                <!-- Signature V15 Vertical Tick / Barcode Progress Bar -->
                 <div id="barcodeBar" class="barcode-bar" aria-label="Indikator persentase serapan anggaran"></div>
                 <div class="barcode-legend">
                   <span>0% Plafon</span>
@@ -204,7 +207,7 @@
                     <span id="kpiRateStatus" class="pill pill-dark-ok">ONLINE</span>
                   </div>
                   <div class="weather-hero">
-                    <strong id="kpiWeather" class="weather-temp">—</strong>
+                    <strong id="kpiWeather" class="weather-temp">-</strong>
                     <span id="kpiWeatherMeta" class="weather-loc">Kampus Untad Tondo, Palu</span>
                   </div>
                   <p id="kpiRateSource" class="dark-sub">ExchangeRate-API &amp; Open-Meteo</p>
@@ -229,21 +232,13 @@
 
           <!-- Right Rail (~35%) -->
           <aside class="bento-rail">
-            <!-- Horizontal Week Calendar Strip -->
+            <!-- Dynamic Week Calendar Strip -->
             <article class="card calendar-card">
               <div class="card-top">
-                <h3>November, 2026</h3>
+                <h3 id="calendarMonthTitle">Kalender Minggu Ini</h3>
                 <span class="pill pill-soft">Palu WITA</span>
               </div>
-              <div class="week-strip" aria-label="Kalender minggu ini">
-                <div class="day-pill"><span>Min</span><strong>22</strong></div>
-                <div class="day-pill"><span>Sen</span><strong>23</strong></div>
-                <div class="day-pill"><span>Sel</span><strong>24</strong></div>
-                <div class="day-pill today"><span>Rab</span><strong>25</strong><i></i></div>
-                <div class="day-pill"><span>Kam</span><strong>26</strong></div>
-                <div class="day-pill"><span>Jum</span><strong>27</strong></div>
-                <div class="day-pill"><span>Sab</span><strong>28</strong></div>
-              </div>
+              <div id="weekStrip" class="week-strip" aria-label="Kalender minggu ini"></div>
             </article>
 
             <!-- Compact Top Research Activities -->
@@ -300,10 +295,10 @@
       <section id="view-expenses" class="view-panel">
         <div class="filter-bar">
           <div class="filter-controls">
-            <select id="filterExpenseActivity" class="select-pill">
+            <select id="filterExpenseActivity" class="select-pill" aria-label="Filter berdasarkan kegiatan">
               <option value="">Semua Kegiatan</option>
             </select>
-            <select id="filterExpenseCategory" class="select-pill">
+            <select id="filterExpenseCategory" class="select-pill" aria-label="Filter berdasarkan kategori">
               <option value="">Semua Kategori</option>
               <option value="akomodasi">akomodasi</option>
               <option value="transportasi">transportasi</option>
@@ -382,10 +377,10 @@
           </div>
 
           <div class="headers-grid">
-            <div class="header-tile"><span>Status /v1</span><strong id="auditV1Status">—</strong></div>
-            <div class="header-tile"><span>Sunset</span><strong id="auditSunset">—</strong></div>
-            <div class="header-tile"><span>Deprecation</span><strong id="auditDeprecation">—</strong></div>
-            <div class="header-tile"><span>Link</span><strong id="auditLink">—</strong></div>
+            <div class="header-tile"><span>Status /v1</span><strong id="auditV1Status">-</strong></div>
+            <div class="header-tile"><span>Sunset</span><strong id="auditSunset">-</strong></div>
+            <div class="header-tile"><span>Deprecation</span><strong id="auditDeprecation">-</strong></div>
+            <div class="header-tile"><span>Link</span><strong id="auditLink">-</strong></div>
           </div>
 
           <div class="split-2">
@@ -401,10 +396,9 @@
         </article>
       </section>
 
-      <!-- ==================== VIEW 5: KEAMANAN & RBAC (V15 ROLES LAYOUT) ==================== -->
+      <!-- ==================== VIEW 5: KEAMANAN & RBAC ==================== -->
       <section id="view-security" class="view-panel">
         <div class="roles-layout">
-          <!-- Left: Login Form + Role Cards -->
           <div class="roles-left">
             <article class="card">
               <div class="card-top">
@@ -413,24 +407,27 @@
                   <p class="card-sub">Token HMAC-SHA256 berlaku 2 jam dan disimpan di sesi browser.</p>
                 </div>
               </div>
-              <div class="quick-row">
-                <button id="btnFillAdmin" class="filter-pill" type="button">Isi Demo Admin</button>
-                <button id="btnFillMhs" class="filter-pill" type="button">Isi Demo Mahasiswa</button>
-              </div>
               <form id="loginForm" class="stack-form">
                 <label class="field-block">
                   <span>Username</span>
-                  <input id="loginUsername" name="username" type="text" placeholder="admin / mahasiswa" required>
+                  <input id="loginUsername" name="username" type="text" placeholder="admin / mahasiswa" autocomplete="username" required>
                 </label>
                 <label class="field-block">
                   <span>Password</span>
-                  <input id="loginPassword" name="password" type="password" placeholder="••••••••" required>
+                  <input id="loginPassword" name="password" type="password" placeholder="Masukkan kata sandi" autocomplete="current-password" required>
                 </label>
                 <div class="form-btn-row">
-                  <button class="btn btn-indigo" type="submit">Login &amp; Simpan Token</button>
+                  <button id="btnSubmitLogin" class="btn btn-indigo" type="submit">Login &amp; Simpan Token</button>
                   <button id="btnSecurityLogout" class="btn btn-outline hidden" type="button">Logout</button>
                 </div>
               </form>
+              <details class="demo-box">
+                <summary>Bantuan Akun Pengujian Lokal</summary>
+                <div class="quick-row">
+                  <button id="btnFillAdmin" class="filter-pill" type="button">Isi Demo Admin</button>
+                  <button id="btnFillMhs" class="filter-pill" type="button">Isi Demo Mahasiswa</button>
+                </div>
+              </details>
             </article>
 
             <div class="role-selector-stack">
@@ -451,12 +448,11 @@
             </div>
           </div>
 
-          <!-- Right: 2x2 Permission Matrix (V15 Style) -->
           <div class="roles-right">
             <article class="card">
               <div class="card-top">
                 <div>
-                  <h2 id="rbacMatrixTitle">Matriks Izin — Role Admin</h2>
+                  <h2 id="rbacMatrixTitle">Matriks Izin: Role Admin</h2>
                   <p class="card-sub">Penegakan status <code>401 Unauthorized</code> dan <code>403 Forbidden</code> oleh <code>src/security.js</code>.</p>
                 </div>
                 <span id="rbacRolePill" class="pill pill-indigo">admin</span>
@@ -498,29 +494,30 @@
       <label class="field-block"><span>Deskripsi</span><textarea name="description" rows="2" placeholder="Ringkasan kegiatan riset lapangan"></textarea></label>
       <div class="modal-actions">
         <button class="btn btn-outline" type="button" data-close-dialog="activityDialog">Batal</button>
-        <button class="btn btn-indigo" type="submit">Simpan Kegiatan</button>
+        <button id="btnSubmitActivity" class="btn btn-indigo" type="submit">Simpan Kegiatan</button>
       </div>
     </form>
   </dialog>
 
-  <!-- MODAL TAMBAH PENGELUARAN -->
+  <!-- MODAL TAMBAH / EDIT PENGELUARAN -->
   <dialog id="expenseDialog" class="modal">
     <form id="expenseForm" method="dialog" class="modal-body">
       <div class="modal-head">
-        <h3>Tambah Pengeluaran Riset (<code>POST /v2/expenses</code>)</h3>
+        <h3 id="expenseModalTitle">Tambah Pengeluaran Riset (<code>POST /v2/expenses</code>)</h3>
         <button class="icon-close" type="button" data-close-dialog="expenseDialog" aria-label="Tutup">&times;</button>
       </div>
       <p class="card-sub">Membutuhkan login (role <strong>admin</strong> atau <strong>mahasiswa</strong>) dan wajib terhubung ke <code>activityId</code>.</p>
       <div id="expenseModalErr" class="toast toast-err hidden" role="alert"></div>
+      <input id="expenseEditId" name="editId" type="hidden" value="">
       <label class="field-block">
         <span>Kegiatan Riset (activityId) *</span>
         <select id="expenseActivitySelect" name="activityId" required></select>
       </label>
-      <label class="field-block"><span>Judul Pengeluaran *</span><input name="title" type="text" required placeholder="Sewa Perahu Pemantauan Sensor"></label>
+      <label class="field-block"><span>Judul Pengeluaran *</span><input id="expenseTitleInput" name="title" type="text" required placeholder="Sewa Perahu Pemantauan Sensor"></label>
       <div class="form-row">
         <label class="field-block">
           <span>Kategori *</span>
-          <select name="category" required>
+          <select id="expenseCategoryInput" name="category" required>
             <option value="transportasi">transportasi</option>
             <option value="akomodasi">akomodasi</option>
             <option value="konsumsi">konsumsi</option>
@@ -529,13 +526,13 @@
             <option value="lainnya">lainnya</option>
           </select>
         </label>
-        <label class="field-block"><span>Tanggal *</span><input name="date" type="date" required value="2026-11-25"></label>
+        <label class="field-block"><span>Tanggal *</span><input id="expenseDateInput" name="date" type="date" required></label>
       </div>
       <div class="form-row">
-        <label class="field-block"><span>Nominal *</span><input name="amount" type="number" min="0.01" step="any" required placeholder="500000"></label>
+        <label class="field-block"><span>Nominal *</span><input id="expenseAmountInput" name="amount" type="number" min="0.01" step="any" required placeholder="500000"></label>
         <label class="field-block">
           <span>Mata Uang *</span>
-          <select name="currency" required>
+          <select id="expenseCurrencyInput" name="currency" required>
             <option value="IDR">IDR</option>
             <option value="USD">USD</option>
             <option value="JPY">JPY</option>
@@ -547,12 +544,27 @@
           </select>
         </label>
       </div>
-      <label class="field-block"><span>Catatan</span><input name="notes" type="text" placeholder="Keterangan tambahan (opsional)"></label>
+      <label class="field-block"><span>Catatan</span><input id="expenseNotesInput" name="notes" type="text" placeholder="Keterangan tambahan (opsional)"></label>
       <div class="modal-actions">
         <button class="btn btn-outline" type="button" data-close-dialog="expenseDialog">Batal</button>
-        <button class="btn btn-indigo" type="submit">Simpan Pengeluaran</button>
+        <button id="btnSubmitExpense" class="btn btn-indigo" type="submit">Simpan Pengeluaran</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- MODAL KONFIRMASI HAPUS PENGELUARAN -->
+  <dialog id="confirmDialog" class="modal modal-sm">
+    <div class="modal-body">
+      <div class="modal-head">
+        <h3>Konfirmasi Hapus Pengeluaran</h3>
+        <button class="icon-close" type="button" data-close-dialog="confirmDialog" aria-label="Tutup">&times;</button>
+      </div>
+      <p id="confirmMessage" class="card-sub">Apakah Anda yakin ingin menghapus pengeluaran ini?</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" data-close-dialog="confirmDialog">Batal</button>
+        <button id="btnConfirmDelete" class="btn btn-danger-solid" type="button">Ya, Hapus</button>
+      </div>
+    </div>
   </dialog>
 
   <script src="/public/app.js"></script>
