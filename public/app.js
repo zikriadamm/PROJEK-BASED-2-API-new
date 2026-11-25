@@ -9,6 +9,14 @@
     security: 'Keamanan & Hak Akses (RBAC)'
   };
 
+  const RAIL_LABELS = {
+    overview: 'OVERVIEW',
+    activities: 'KEGIATAN',
+    expenses: 'BIAYA',
+    explorer: 'EXPLORER',
+    security: 'KEAMANAN'
+  };
+
   const GQL_PRESETS = {
     activities: {
       query: `query {
@@ -131,10 +139,297 @@
     actStatusFilter: '',
     feedCategory: '',
     fulfillScope: 'ALL',
-    inspectedRole: 'admin'
+    inspectedRole: 'admin',
+    pendingDeleteId: null,
+    toastTimer: null,
+    sidebarExpanded: false,
+    sidebarTimeline: null
   };
 
   const $ = (id) => document.getElementById(id);
+
+  function canAnimate() {
+    return (
+      typeof window.gsap !== 'undefined' &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+  }
+
+  function animateViewEnter(panel) {
+    if (!canAnimate() || !panel) return;
+    const targets = panel.querySelectorAll('.hero-banner, .dark-strip, .card');
+    if (!targets.length) return;
+    window.gsap.fromTo(
+      targets,
+      { y: 12, opacity: 0 },
+      {
+        y: 0,
+        opacity: 1,
+        duration: 0.28,
+        stagger: 0.04,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        clearProps: 'transform,opacity'
+      }
+    );
+  }
+
+  function animateCountUp(el, targetValue, formatter) {
+    if (!el) return;
+    const end = Number(targetValue) || 0;
+    if (!canAnimate() || end === 0) {
+      el.textContent = formatter(end);
+      return;
+    }
+    const counter = { val: 0 };
+    window.gsap.to(counter, {
+      val: end,
+      duration: 0.55,
+      ease: 'power2.out',
+      overwrite: 'auto',
+      onUpdate: () => {
+        el.textContent = formatter(counter.val);
+      },
+      onComplete: () => {
+        el.textContent = formatter(end);
+      }
+    });
+  }
+
+  function animateBars(container) {
+    if (!canAnimate() || !container) return;
+    const sticks = container.querySelectorAll('.bar-stick');
+    if (!sticks.length) return;
+    window.gsap.fromTo(
+      sticks,
+      { scaleY: 0, transformOrigin: 'bottom center' },
+      {
+        scaleY: 1,
+        duration: 0.36,
+        stagger: 0.045,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        clearProps: 'transform'
+      }
+    );
+  }
+
+  function animateBarcodeTicks(container) {
+    if (!canAnimate() || !container) return;
+    const ticks = container.querySelectorAll('.tick.filled, .tick.filled-hi');
+    if (!ticks.length) return;
+    window.gsap.fromTo(
+      ticks,
+      { scaleY: 0.25, opacity: 0.35, transformOrigin: 'bottom center' },
+      {
+        scaleY: 1,
+        opacity: 1,
+        duration: 0.24,
+        stagger: 0.012,
+        ease: 'power2.out',
+        overwrite: 'auto',
+        clearProps: 'transform,opacity'
+      }
+    );
+  }
+
+  function animateToast(el) {
+    if (!canAnimate() || !el) return;
+    window.gsap.fromTo(
+      el,
+      { y: -8, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.22, ease: 'power3.out', overwrite: 'auto', clearProps: 'transform,opacity' }
+    );
+  }
+
+  function animateDialogOpen(dialogEl) {
+    if (!canAnimate() || !dialogEl) return;
+    window.gsap.fromTo(
+      dialogEl,
+      { y: 10, scale: 0.97, opacity: 0 },
+      {
+        y: 0,
+        scale: 1,
+        opacity: 1,
+        duration: 0.22,
+        ease: 'power3.out',
+        overwrite: 'auto',
+        clearProps: 'transform,opacity'
+      }
+    );
+  }
+
+  function moveSidebarNotch(viewName, immediate = false) {
+    const notch = $('sidebarActiveNotch');
+    const activeBtn = document.querySelector(`.rail-btn[data-view="${viewName}"]`);
+    const labelEl = $('railSectionLabel');
+    const nextLabel = RAIL_LABELS[viewName] || 'OVERVIEW';
+    if (!notch || !activeBtn) return;
+
+    const targetY = activeBtn.offsetTop;
+    if (immediate || !canAnimate()) {
+      notch.style.transform = `translateY(${targetY}px)`;
+      if (labelEl) labelEl.textContent = nextLabel;
+      return;
+    }
+
+    const navTl = window.gsap.timeline({ defaults: { ease: 'power3.out' } });
+    navTl.addLabel('slide', 0);
+    navTl.to(notch, { y: targetY, duration: 0.34, ease: 'back.out(1.25)', overwrite: 'auto' }, 'slide');
+    if (labelEl && labelEl.textContent !== nextLabel) {
+      navTl.to(labelEl, { y: 8, opacity: 0, duration: 0.12, ease: 'power2.in' }, 'slide');
+      navTl.call(() => {
+        labelEl.textContent = nextLabel;
+      });
+      navTl.fromTo(
+        labelEl,
+        { y: -8, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.2, clearProps: 'transform,opacity' }
+      );
+    }
+  }
+
+  function setSidebarExpanded(expand) {
+    const sidebar = $('sidebar');
+    const whiteRail = $('sidebarWhiteRail');
+    const expandBtn = $('btnSidebarExpand');
+    if (!sidebar || !whiteRail) return;
+
+    const next = Boolean(expand);
+    if (state.sidebarExpanded === next) return;
+    state.sidebarExpanded = next;
+
+    if (state.sidebarTimeline) {
+      state.sidebarTimeline.kill();
+      state.sidebarTimeline = null;
+    }
+
+    if (expandBtn) expandBtn.setAttribute('aria-expanded', String(next));
+
+    const reveals = sidebar.querySelectorAll('.sb-reveal');
+
+    if (!canAnimate()) {
+      sidebar.dataset.expanded = String(next);
+      sidebar.style.width = next ? '278px' : '68px';
+      whiteRail.style.width = next ? '48px' : '0px';
+      whiteRail.style.opacity = next ? '1' : '0';
+      whiteRail.style.visibility = next ? 'visible' : 'hidden';
+      const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
+      moveSidebarNotch(activeView, true);
+      return;
+    }
+
+    if (next) {
+      sidebar.dataset.expanded = 'true';
+      const tl = window.gsap.timeline({
+        defaults: { ease: 'power3.out' },
+        onComplete: () => {
+          const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
+          moveSidebarNotch(activeView, true);
+        }
+      });
+
+      tl.addLabel('shell', 0)
+        .to(sidebar, { width: 278, duration: 0.4, ease: 'power3.inOut' }, 'shell')
+        .addLabel('rail', 'shell+=0.08')
+        .fromTo(
+          whiteRail,
+          { width: 0, autoAlpha: 0 },
+          { width: 48, autoAlpha: 1, duration: 0.34, ease: 'power3.out' },
+          'rail'
+        )
+        .addLabel('labels', 'shell+=0.14')
+        .fromTo(
+          reveals,
+          { autoAlpha: 0, x: -10, filter: 'blur(6px)' },
+          {
+            autoAlpha: 1,
+            x: 0,
+            filter: 'blur(0px)',
+            duration: 0.26,
+            stagger: 0.014,
+            ease: 'power2.out',
+            clearProps: 'filter,transform'
+          },
+          'labels'
+        );
+
+      state.sidebarTimeline = tl;
+    } else {
+      const tl = window.gsap.timeline({
+        defaults: { ease: 'power2.inOut' },
+        onComplete: () => {
+          sidebar.dataset.expanded = 'false';
+          window.gsap.set(reveals, { clearProps: 'all' });
+          const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
+          moveSidebarNotch(activeView, true);
+        }
+      });
+
+      tl.addLabel('labelsOut', 0)
+        .to(
+          reveals,
+          { autoAlpha: 0, x: -6, filter: 'blur(4px)', duration: 0.14, stagger: 0.006, ease: 'power2.in' },
+          'labelsOut'
+        )
+        .addLabel('railOut', 'labelsOut+=0.06')
+        .to(whiteRail, { width: 0, autoAlpha: 0, duration: 0.22, ease: 'power2.inOut' }, 'railOut')
+        .addLabel('shellOut', 'labelsOut+=0.08')
+        .to(sidebar, { width: 68, duration: 0.34, ease: 'power3.inOut' }, 'shellOut');
+
+      state.sidebarTimeline = tl;
+    }
+  }
+
+  function renderSidebarProjects() {
+    const wrap = $('sidebarProjects');
+    if (!wrap) return;
+    const dotColors = ['#f59e0b', '#10b981', '#fb7185'];
+    const items = state.activities.slice(0, 3);
+    if (!items.length) {
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.innerHTML = items
+      .map((act, idx) => `
+        <button class="sb-proj-item" type="button" data-jump-activity="${escapeHtml(act.id)}" data-tip="${escapeHtml(act.title)}">
+          <span class="sb-proj-dot" style="background:${dotColors[idx % dotColors.length]}"></span>
+          <span class="sb-proj-name sb-reveal">${escapeHtml(act.title)}</span>
+          <span class="sb-proj-count sb-reveal">${escapeHtml(act.expenseCount ?? 0)}</span>
+        </button>
+      `)
+      .join('');
+  }
+
+  function todayIsoDate() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function renderCalendarStrip() {
+    const now = new Date();
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    $('calendarMonthTitle').textContent = `${months[now.getMonth()]}, ${now.getFullYear()}`;
+
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - now.getDay());
+
+    $('weekStrip').innerHTML = days
+      .map((label, idx) => {
+        const d = new Date(sunday);
+        d.setDate(sunday.getDate() + idx);
+        const isToday = d.toDateString() === now.toDateString();
+        return `<div class="day-pill${isToday ? ' today' : ''}"><span>${label}</span><strong>${d.getDate()}</strong>${isToday ? '<i></i>' : ''}</div>`;
+      })
+      .join('');
+  }
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -145,10 +440,38 @@
       .replace(/'/g, '&#39;');
   }
 
+  function hideToast() {
+    if (state.toastTimer) {
+      clearTimeout(state.toastTimer);
+      state.toastTimer = null;
+    }
+    $('toast').className = 'toast hidden';
+  }
+
   function showToast(message, tone = 'ok') {
-    const el = $('toast');
-    el.textContent = message;
-    el.className = `toast toast-${tone}`;
+    if (state.toastTimer) {
+      clearTimeout(state.toastTimer);
+      state.toastTimer = null;
+    }
+    $('toastMessage').textContent = message;
+    $('toast').className = `toast toast-${tone}`;
+    animateToast($('toast'));
+    if (tone === 'ok') {
+      state.toastTimer = setTimeout(hideToast, 5000);
+    }
+  }
+
+  async function withButtonLoading(btn, loadingLabel, fn) {
+    if (!btn) return fn();
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = loadingLabel;
+    try {
+      return await fn();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   function getApiKey() {
@@ -185,9 +508,14 @@
       btn.setAttribute('aria-selected', String(active));
     });
 
+    let activePanel = null;
     document.querySelectorAll('.view-panel').forEach((panel) => {
-      panel.classList.toggle('active', panel.id === `view-${viewName}`);
+      const isCurrent = panel.id === `view-${viewName}`;
+      panel.classList.toggle('active', isCurrent);
+      if (isCurrent) activePanel = panel;
     });
+    moveSidebarNotch(viewName);
+    animateViewEnter(activePanel);
   }
 
   function saveSession() {
@@ -215,6 +543,8 @@
     const railAvatar = $('railAvatar');
     const logoutBtn = $('btnLogout');
     const secLogout = $('btnSecurityLogout');
+    const profileName = $('sbProfileName');
+    const profileRole = $('sbProfileRole');
 
     if (state.user && state.token) {
       const role = state.user.role === 'admin' ? 'admin' : 'mahasiswa';
@@ -223,6 +553,8 @@
       railAvatar.className = `rail-avatar ${role}`;
       railAvatar.textContent = state.user.username.slice(0, 2).toUpperCase();
       railAvatar.title = `${state.user.fullName} (${role})`;
+      if (profileName) profileName.textContent = state.user.fullName || state.user.username;
+      if (profileRole) profileRole.textContent = `Role: ${role}`;
       logoutBtn.classList.remove('hidden');
       secLogout.classList.remove('hidden');
       renderRbacMatrix(role);
@@ -232,6 +564,8 @@
       railAvatar.className = 'rail-avatar guest';
       railAvatar.textContent = 'G';
       railAvatar.title = 'Belum Login';
+      if (profileName) profileName.textContent = 'Belum Login';
+      if (profileRole) profileRole.textContent = 'Klik untuk masuk';
       logoutBtn.classList.add('hidden');
       secLogout.classList.add('hidden');
     }
@@ -260,6 +594,7 @@
         `;
       })
       .join('');
+    animateBars(container);
   }
 
   function renderFulfillmentCard() {
@@ -275,7 +610,7 @@
 
     $('fulfillActivities').textContent = String(acts.length);
     $('fulfillExpenses').textContent = String(totalTx);
-    $('fulfillPct').textContent = `${pct}%`;
+    animateCountUp($('fulfillPct'), pct, (v) => `${v.toFixed(1).replace(/\.0$/, '')}%`);
 
     const totalTicks = 32;
     const filledTicks = Math.min(totalTicks, Math.max(pct > 0 ? 1 : 0, Math.round((pct / 100) * totalTicks)));
@@ -286,6 +621,7 @@
       return '<span class="tick"></span>';
     }).join('');
     $('barcodeBar').innerHTML = barHtml;
+    animateBarcodeTicks($('barcodeBar'));
 
     const statusText = pct > 100 ? 'MELEBIHI BATAS' : pct >= 80 ? 'WASPADA' : 'AMAN';
     $('fulfillBudgetLabel').textContent = `Status: ${statusText} (Rp ${totalSpent.toLocaleString('id-ID')})`;
@@ -308,9 +644,12 @@
     const plafon = Number(r.totalPlafonIDR) || 0;
     const pct = plafon > 0 ? Number(((spent / plafon) * 100).toFixed(1)) : 0;
 
-    $('kpiSpent').textContent = r.totalPengeluaranFormatted || 'Rp 0';
+    const remaining = Number(r.sisaAnggaranTotalIDR ?? Math.max(0, plafon - spent)) || 0;
+    const fmtIdr = (v) => `Rp ${Math.round(v).toLocaleString('id-ID')}`;
+
+    animateCountUp($('kpiSpent'), spent, fmtIdr);
     $('kpiPlafon').textContent = `Plafon: ${r.totalPlafonFormatted || 'Rp 0'}`;
-    $('kpiRemaining').textContent = r.sisaAnggaranTotalFormatted || 'Rp 0';
+    animateCountUp($('kpiRemaining'), remaining, fmtIdr);
     $('kpiUtilBadge').textContent = `${pct}%`;
     $('kpiProgressFill').style.width = `${Math.min(100, pct)}%`;
 
@@ -411,7 +750,7 @@
     const prevFilter = filterSelect.value;
 
     const options = allActivities
-      .map((a) => `<option value="${escapeHtml(a.id)}">#${escapeHtml(a.id)} — ${escapeHtml(a.title)}</option>`)
+      .map((a) => `<option value="${escapeHtml(a.id)}">#${escapeHtml(a.id)} - ${escapeHtml(a.title)}</option>`)
       .join('');
 
     filterSelect.innerHTML = `<option value="">Semua Kegiatan</option>${options}`;
@@ -430,6 +769,7 @@
     renderActivitiesView();
     renderRailActivities();
     renderFulfillmentCard();
+    renderSidebarProjects();
   }
 
   function renderRailFeed() {
@@ -492,7 +832,10 @@
           <td class="num"><strong>${escapeHtml(exp.cost?.formattedIDR || '—')}</strong></td>
           <td>${escapeHtml(exp.submittedBy || '-')}</td>
           <td>
-            <button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
+            <div class="row-actions">
+              <button class="btn btn-table-edit" type="button" data-edit-expense="${escapeHtml(exp.id)}">Edit</button>
+              <button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
+            </div>
           </td>
         </tr>
       `)
@@ -506,13 +849,15 @@
       return;
     }
     state.expenses = res.data.data || [];
+    const expBadge = $('sbExpenseCount');
+    if (expBadge) expBadge.textContent = String(state.expenses.length);
     renderExpensesTable();
     renderRailFeed();
   }
 
   function renderRbacMatrix(role) {
     state.inspectedRole = role;
-    $('rbacMatrixTitle').textContent = `Matriks Izin — Role ${role === 'admin' ? 'Admin' : 'Mahasiswa'}`;
+    $('rbacMatrixTitle').textContent = `Matriks Izin: Role ${role === 'admin' ? 'Admin' : 'Mahasiswa'}`;
     $('rbacRolePill').textContent = role;
 
     document.querySelectorAll('.role-card').forEach((card) => {
@@ -545,27 +890,64 @@
     await Promise.all([loadSummary(), loadActivities(), loadExpenses()]);
   }
 
+  function openExpenseModal(expense = null) {
+    $('expenseModalErr').classList.add('hidden');
+    if (expense) {
+      $('expenseEditId').value = String(expense.id);
+      $('expenseModalTitle').innerHTML = `Edit Pengeluaran #${escapeHtml(expense.id)} (<code>PUT /v2/expenses/${escapeHtml(expense.id)}</code>)`;
+      $('btnSubmitExpense').textContent = 'Perbarui Pengeluaran';
+      $('expenseActivitySelect').value = String(expense.activityId);
+      $('expenseTitleInput').value = expense.title || '';
+      $('expenseCategoryInput').value = String(expense.category || 'lainnya').toLowerCase();
+      $('expenseDateInput').value = expense.date || todayIsoDate();
+      $('expenseAmountInput').value = String(expense.amount ?? '');
+      $('expenseCurrencyInput').value = String(expense.currency || 'IDR').toUpperCase();
+      $('expenseNotesInput').value = expense.notes || '';
+    } else {
+      $('expenseForm').reset();
+      $('expenseEditId').value = '';
+      $('expenseModalTitle').innerHTML = 'Tambah Pengeluaran Riset (<code>POST /v2/expenses</code>)';
+      $('btnSubmitExpense').textContent = 'Simpan Pengeluaran';
+      $('expenseDateInput').value = todayIsoDate();
+    }
+    $('expenseDialog').showModal();
+    animateDialogOpen($('expenseDialog'));
+  }
+
+  function openDeleteConfirm(id) {
+    const exp = state.expenses.find((e) => Number(e.id) === Number(id));
+    state.pendingDeleteId = Number(id);
+    const detail = exp
+      ? `"${exp.title}" (${exp.cost?.formattedIDR || `${exp.amount} ${exp.currency}`})`
+      : `pengeluaran #${id}`;
+    $('confirmMessage').textContent = `Hapus ${detail}? Tindakan ini tidak dapat dibatalkan.`;
+    $('confirmDialog').showModal();
+    animateDialogOpen($('confirmDialog'));
+  }
+
   async function handleLogin(e) {
     e.preventDefault();
     const username = $('loginUsername').value.trim();
     const password = $('loginPassword').value;
 
-    const res = await apiRequest('/v2/auth/login', {
-      method: 'POST',
-      body: { username, password }
+    await withButtonLoading($('btnSubmitLogin'), 'Memproses...', async () => {
+      const res = await apiRequest('/v2/auth/login', {
+        method: 'POST',
+        body: { username, password }
+      });
+
+      if (!res.ok) {
+        showToast(`Login gagal (${res.status}): ${res.data?.error || 'Kredensial tidak valid.'}`, 'err');
+        return;
+      }
+
+      state.token = res.data.token;
+      state.user = res.data.user;
+      saveSession();
+      renderSession();
+      showToast(`Login berhasil sebagai ${state.user.fullName} (role: ${state.user.role}).`, 'ok');
+      await refreshAll();
     });
-
-    if (!res.ok) {
-      showToast(`Login gagal (${res.status}): ${res.data?.error || 'Kredensial tidak valid.'}`, 'err');
-      return;
-    }
-
-    state.token = res.data.token;
-    state.user = res.data.user;
-    saveSession();
-    renderSession();
-    showToast(`Login berhasil sebagai ${state.user.fullName} (role: ${state.user.role}).`, 'ok');
-    await refreshAll();
   }
 
   async function handleLogout() {
@@ -592,26 +974,30 @@
       description: String(fd.get('description') || '').trim() || undefined
     };
 
-    const res = await apiRequest('/v2/activities', { method: 'POST', auth: true, body: payload });
-    if (!res.ok) {
-      const tone = res.status === 403 ? 'warn' : 'err';
-      const msg = `Gagal menambah kegiatan (${res.status}): ${res.data?.error || 'Akses ditolak.'}`;
-      $('activityModalErr').textContent = msg;
-      $('activityModalErr').className = `toast toast-${tone}`;
-      showToast(msg, tone);
-      return;
-    }
+    await withButtonLoading($('btnSubmitActivity'), 'Menyimpan...', async () => {
+      const res = await apiRequest('/v2/activities', { method: 'POST', auth: true, body: payload });
+      if (!res.ok) {
+        const tone = res.status === 403 ? 'warn' : 'err';
+        const msg = `Gagal menambah kegiatan (${res.status}): ${res.data?.error || 'Akses ditolak.'}`;
+        $('activityModalErr').textContent = msg;
+        $('activityModalErr').className = `toast toast-${tone}`;
+        showToast(msg, tone);
+        return;
+      }
 
-    $('activityModalErr').classList.add('hidden');
-    $('activityDialog').close();
-    e.target.reset();
-    showToast(`Kegiatan #${res.data.data.id} berhasil ditambahkan.`, 'ok');
-    await refreshAll();
+      $('activityModalErr').classList.add('hidden');
+      $('activityDialog').close();
+      e.target.reset();
+      showToast(`Kegiatan #${res.data.data.id} berhasil ditambahkan.`, 'ok');
+      await refreshAll();
+    });
   }
 
   async function handleCreateExpense(e) {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const editId = String(fd.get('editId') || '').trim();
+    const isEdit = editId !== '';
     const payload = {
       activityId: Number(fd.get('activityId')),
       title: String(fd.get('title') || '').trim(),
@@ -622,35 +1008,48 @@
       notes: String(fd.get('notes') || '').trim()
     };
 
-    const res = await apiRequest('/v2/expenses', { method: 'POST', auth: true, body: payload });
-    if (!res.ok) {
-      const msg = `Gagal menambah pengeluaran (${res.status}): ${res.data?.error || 'Periksa input / login.'}`;
-      $('expenseModalErr').textContent = msg;
-      $('expenseModalErr').className = 'toast toast-err';
-      showToast(msg, 'err');
-      return;
-    }
+    const url = isEdit ? `/v2/expenses/${editId}` : '/v2/expenses';
+    const method = isEdit ? 'PUT' : 'POST';
 
-    $('expenseModalErr').classList.add('hidden');
-    $('expenseDialog').close();
-    e.target.reset();
-    showToast(`Pengeluaran #${res.data.data.id} disimpan (${res.data.data.cost?.formattedIDR || ''}).`, 'ok');
-    await refreshAll();
+    await withButtonLoading($('btnSubmitExpense'), isEdit ? 'Memperbarui...' : 'Menyimpan...', async () => {
+      const res = await apiRequest(url, { method, auth: true, body: payload });
+      if (!res.ok) {
+        const msg = `Gagal ${isEdit ? 'memperbarui' : 'menambah'} pengeluaran (${res.status}): ${res.data?.error || 'Periksa input / login.'}`;
+        $('expenseModalErr').textContent = msg;
+        $('expenseModalErr').className = 'toast toast-err';
+        showToast(msg, 'err');
+        return;
+      }
+
+      $('expenseModalErr').classList.add('hidden');
+      $('expenseDialog').close();
+      e.target.reset();
+      $('expenseEditId').value = '';
+      showToast(
+        `Pengeluaran #${res.data.data.id} ${isEdit ? 'diperbarui' : 'disimpan'} (${res.data.data.cost?.formattedIDR || ''}).`,
+        'ok'
+      );
+      await refreshAll();
+    });
   }
 
   async function handleDeleteExpense(id) {
-    const res = await apiRequest(`/v2/expenses/${id}`, { method: 'DELETE', auth: true });
-    if (!res.ok) {
-      const tone = res.status === 403 ? 'warn' : 'err';
-      const hint =
-        res.status === 403
-          ? 'RBAC aktif (403 Forbidden): hanya role admin yang boleh menghapus pengeluaran.'
-          : res.data?.error || 'Gagal menghapus pengeluaran.';
-      showToast(`${hint} (HTTP ${res.status})`, tone);
-      return;
-    }
-    showToast(`Pengeluaran #${id} berhasil dihapus.`, 'ok');
-    await refreshAll();
+    await withButtonLoading($('btnConfirmDelete'), 'Menghapus...', async () => {
+      const res = await apiRequest(`/v2/expenses/${id}`, { method: 'DELETE', auth: true });
+      $('confirmDialog').close();
+      state.pendingDeleteId = null;
+      if (!res.ok) {
+        const tone = res.status === 403 ? 'warn' : 'err';
+        const hint =
+          res.status === 403
+            ? 'RBAC aktif (403 Forbidden): hanya role admin yang boleh menghapus pengeluaran.'
+            : res.data?.error || 'Gagal menghapus pengeluaran.';
+        showToast(`${hint} (HTTP ${res.status})`, tone);
+        return;
+      }
+      showToast(`Pengeluaran #${id} berhasil dihapus.`, 'ok');
+      await refreshAll();
+    });
   }
 
   async function handleRunGraphQL() {
@@ -700,9 +1099,58 @@
   function wireEvents() {
     document.querySelectorAll('.rail-btn[data-view]').forEach((btn) => {
       btn.addEventListener('click', () => switchView(btn.dataset.view));
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        btn.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        btn.style.setProperty('--my', `${e.clientY - rect.top}px`);
+      });
+    });
+
+    $('btnSidebarExpand')?.addEventListener('click', () => setSidebarExpanded(!state.sidebarExpanded));
+    $('btnSidebarCollapse')?.addEventListener('click', () => setSidebarExpanded(false));
+    $('btnSidebarSearch')?.addEventListener('click', () => {
+      if (!state.sidebarExpanded) setSidebarExpanded(true);
+      setTimeout(() => $('sidebarSearchInput')?.focus(), 180);
+    });
+
+    $('sidebarSearchInput')?.addEventListener('input', (e) => {
+      const q = e.target.value;
+      $('searchExpense').value = q;
+      if (q.trim()) {
+        switchView('expenses');
+        renderExpensesTable();
+      }
+    });
+
+    $('btnSidebarAddActivity')?.addEventListener('click', () => {
+      $('activityModalErr').classList.add('hidden');
+      $('activityDialog').showModal();
+      animateDialogOpen($('activityDialog'));
+    });
+
+    $('btnRailPrimaryAction')?.addEventListener('click', () => openExpenseModal());
+    $('btnRailRefreshQuick')?.addEventListener('click', async () => {
+      await refreshAll();
+      showToast('Data dashboard diperbarui dari API.', 'ok');
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setSidebarExpanded(!state.sidebarExpanded);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (!state.sidebarExpanded) setSidebarExpanded(true);
+        setTimeout(() => $('sidebarSearchInput')?.focus(), 180);
+      }
     });
 
     document.body.addEventListener('click', (e) => {
+      const projBtn = e.target.closest('[data-jump-activity]');
+      if (projBtn) {
+        switchView('activities');
+        return;
+      }
       const jumper = e.target.closest('[data-jump-view]');
       if (jumper) switchView(jumper.dataset.jumpView);
     });
@@ -712,9 +1160,15 @@
       showToast('Data dashboard diperbarui dari API.', 'ok');
     });
 
-    $('btnHeroAddExpense').addEventListener('click', () => {
-      $('expenseModalErr').classList.add('hidden');
-      $('expenseDialog').showModal();
+    $('btnHeroAddExpense').addEventListener('click', () => openExpenseModal());
+
+    $('toastClose').addEventListener('click', hideToast);
+
+    $('btnToggleApiKey').addEventListener('click', () => {
+      const input = $('apiKeyInput');
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      $('btnToggleApiKey').textContent = showing ? 'Lihat' : 'Sembunyi';
     });
 
     $('btnQuickAudit').addEventListener('click', async () => {
@@ -754,11 +1208,9 @@
     $('btnOpenActivityModal').addEventListener('click', () => {
       $('activityModalErr').classList.add('hidden');
       $('activityDialog').showModal();
+      animateDialogOpen($('activityDialog'));
     });
-    $('btnOpenExpenseModal').addEventListener('click', () => {
-      $('expenseModalErr').classList.add('hidden');
-      $('expenseDialog').showModal();
-    });
+    $('btnOpenExpenseModal').addEventListener('click', () => openExpenseModal());
     document.querySelectorAll('[data-close-dialog]').forEach((btn) => {
       btn.addEventListener('click', () => $(btn.dataset.closeDialog).close());
     });
@@ -767,8 +1219,18 @@
     $('expenseForm').addEventListener('submit', handleCreateExpense);
 
     $('expensesTableBody').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-delete-expense]');
-      if (btn) handleDeleteExpense(Number(btn.dataset.deleteExpense));
+      const editBtn = e.target.closest('[data-edit-expense]');
+      if (editBtn) {
+        const exp = state.expenses.find((item) => Number(item.id) === Number(editBtn.dataset.editExpense));
+        if (exp) openExpenseModal(exp);
+        return;
+      }
+      const delBtn = e.target.closest('[data-delete-expense]');
+      if (delBtn) openDeleteConfirm(Number(delBtn.dataset.deleteExpense));
+    });
+
+    $('btnConfirmDelete').addEventListener('click', () => {
+      if (state.pendingDeleteId !== null) handleDeleteExpense(state.pendingDeleteId);
     });
 
     document.querySelectorAll('[data-gql-preset]').forEach((btn) => {
@@ -813,10 +1275,12 @@
   // Bootstrap
   const savedApiKey = sessionStorage.getItem('untad_api_key_v2');
   if (savedApiKey) $('apiKeyInput').value = savedApiKey;
+  renderCalendarStrip();
   restoreSession();
   renderSession();
   renderRbacMatrix(state.user?.role === 'mahasiswa' ? 'mahasiswa' : 'admin');
   wireEvents();
+  moveSidebarNotch('overview', true);
   $('gqlQuery').value = GQL_PRESETS.activities.query;
   $('gqlVars').value = GQL_PRESETS.activities.variables;
   refreshAll();
