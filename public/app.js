@@ -9,6 +9,14 @@
     security: 'Keamanan & Hak Akses (RBAC)'
   };
 
+  const RAIL_LABELS = {
+    overview: 'OVERVIEW',
+    activities: 'KEGIATAN',
+    expenses: 'BIAYA',
+    explorer: 'EXPLORER',
+    security: 'KEAMANAN'
+  };
+
   const GQL_PRESETS = {
     activities: {
       query: `query {
@@ -133,7 +141,9 @@
     fulfillScope: 'ALL',
     inspectedRole: 'admin',
     pendingDeleteId: null,
-    toastTimer: null
+    toastTimer: null,
+    sidebarExpanded: false,
+    sidebarTimeline: null
   };
 
   const $ = (id) => document.getElementById(id);
@@ -249,6 +259,148 @@
     );
   }
 
+  function moveSidebarNotch(viewName, immediate = false) {
+    const notch = $('sidebarActiveNotch');
+    const activeBtn = document.querySelector(`.rail-btn[data-view="${viewName}"]`);
+    const labelEl = $('railSectionLabel');
+    const nextLabel = RAIL_LABELS[viewName] || 'OVERVIEW';
+    if (!notch || !activeBtn) return;
+
+    const targetY = activeBtn.offsetTop;
+    if (immediate || !canAnimate()) {
+      notch.style.transform = `translateY(${targetY}px)`;
+      if (labelEl) labelEl.textContent = nextLabel;
+      return;
+    }
+
+    const navTl = window.gsap.timeline({ defaults: { ease: 'power3.out' } });
+    navTl.addLabel('slide', 0);
+    navTl.to(notch, { y: targetY, duration: 0.34, ease: 'back.out(1.25)', overwrite: 'auto' }, 'slide');
+    if (labelEl && labelEl.textContent !== nextLabel) {
+      navTl.to(labelEl, { y: 8, opacity: 0, duration: 0.12, ease: 'power2.in' }, 'slide');
+      navTl.call(() => {
+        labelEl.textContent = nextLabel;
+      });
+      navTl.fromTo(
+        labelEl,
+        { y: -8, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.2, clearProps: 'transform,opacity' }
+      );
+    }
+  }
+
+  function setSidebarExpanded(expand) {
+    const sidebar = $('sidebar');
+    const whiteRail = $('sidebarWhiteRail');
+    const expandBtn = $('btnSidebarExpand');
+    if (!sidebar || !whiteRail) return;
+
+    const next = Boolean(expand);
+    if (state.sidebarExpanded === next) return;
+    state.sidebarExpanded = next;
+
+    if (state.sidebarTimeline) {
+      state.sidebarTimeline.kill();
+      state.sidebarTimeline = null;
+    }
+
+    if (expandBtn) expandBtn.setAttribute('aria-expanded', String(next));
+
+    const reveals = sidebar.querySelectorAll('.sb-reveal');
+
+    if (!canAnimate()) {
+      sidebar.dataset.expanded = String(next);
+      sidebar.style.width = next ? '278px' : '68px';
+      whiteRail.style.width = next ? '48px' : '0px';
+      whiteRail.style.opacity = next ? '1' : '0';
+      whiteRail.style.visibility = next ? 'visible' : 'hidden';
+      const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
+      moveSidebarNotch(activeView, true);
+      return;
+    }
+
+    if (next) {
+      sidebar.dataset.expanded = 'true';
+      const tl = window.gsap.timeline({
+        defaults: { ease: 'power3.out' },
+        onComplete: () => {
+          const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
+          moveSidebarNotch(activeView, true);
+        }
+      });
+
+      tl.addLabel('shell', 0)
+        .to(sidebar, { width: 278, duration: 0.4, ease: 'power3.inOut' }, 'shell')
+        .addLabel('rail', 'shell+=0.08')
+        .fromTo(
+          whiteRail,
+          { width: 0, autoAlpha: 0 },
+          { width: 48, autoAlpha: 1, duration: 0.34, ease: 'power3.out' },
+          'rail'
+        )
+        .addLabel('labels', 'shell+=0.14')
+        .fromTo(
+          reveals,
+          { autoAlpha: 0, x: -10, filter: 'blur(6px)' },
+          {
+            autoAlpha: 1,
+            x: 0,
+            filter: 'blur(0px)',
+            duration: 0.26,
+            stagger: 0.014,
+            ease: 'power2.out',
+            clearProps: 'filter,transform'
+          },
+          'labels'
+        );
+
+      state.sidebarTimeline = tl;
+    } else {
+      const tl = window.gsap.timeline({
+        defaults: { ease: 'power2.inOut' },
+        onComplete: () => {
+          sidebar.dataset.expanded = 'false';
+          window.gsap.set(reveals, { clearProps: 'all' });
+          const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
+          moveSidebarNotch(activeView, true);
+        }
+      });
+
+      tl.addLabel('labelsOut', 0)
+        .to(
+          reveals,
+          { autoAlpha: 0, x: -6, filter: 'blur(4px)', duration: 0.14, stagger: 0.006, ease: 'power2.in' },
+          'labelsOut'
+        )
+        .addLabel('railOut', 'labelsOut+=0.06')
+        .to(whiteRail, { width: 0, autoAlpha: 0, duration: 0.22, ease: 'power2.inOut' }, 'railOut')
+        .addLabel('shellOut', 'labelsOut+=0.08')
+        .to(sidebar, { width: 68, duration: 0.34, ease: 'power3.inOut' }, 'shellOut');
+
+      state.sidebarTimeline = tl;
+    }
+  }
+
+  function renderSidebarProjects() {
+    const wrap = $('sidebarProjects');
+    if (!wrap) return;
+    const dotColors = ['#f59e0b', '#10b981', '#fb7185'];
+    const items = state.activities.slice(0, 3);
+    if (!items.length) {
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.innerHTML = items
+      .map((act, idx) => `
+        <button class="sb-proj-item" type="button" data-jump-activity="${escapeHtml(act.id)}" data-tip="${escapeHtml(act.title)}">
+          <span class="sb-proj-dot" style="background:${dotColors[idx % dotColors.length]}"></span>
+          <span class="sb-proj-name sb-reveal">${escapeHtml(act.title)}</span>
+          <span class="sb-proj-count sb-reveal">${escapeHtml(act.expenseCount ?? 0)}</span>
+        </button>
+      `)
+      .join('');
+  }
+
   function todayIsoDate() {
     const now = new Date();
     const y = now.getFullYear();
@@ -362,6 +514,7 @@
       panel.classList.toggle('active', isCurrent);
       if (isCurrent) activePanel = panel;
     });
+    moveSidebarNotch(viewName);
     animateViewEnter(activePanel);
   }
 
@@ -390,6 +543,8 @@
     const railAvatar = $('railAvatar');
     const logoutBtn = $('btnLogout');
     const secLogout = $('btnSecurityLogout');
+    const profileName = $('sbProfileName');
+    const profileRole = $('sbProfileRole');
 
     if (state.user && state.token) {
       const role = state.user.role === 'admin' ? 'admin' : 'mahasiswa';
@@ -398,6 +553,8 @@
       railAvatar.className = `rail-avatar ${role}`;
       railAvatar.textContent = state.user.username.slice(0, 2).toUpperCase();
       railAvatar.title = `${state.user.fullName} (${role})`;
+      if (profileName) profileName.textContent = state.user.fullName || state.user.username;
+      if (profileRole) profileRole.textContent = `Role: ${role}`;
       logoutBtn.classList.remove('hidden');
       secLogout.classList.remove('hidden');
       renderRbacMatrix(role);
@@ -407,6 +564,8 @@
       railAvatar.className = 'rail-avatar guest';
       railAvatar.textContent = 'G';
       railAvatar.title = 'Belum Login';
+      if (profileName) profileName.textContent = 'Belum Login';
+      if (profileRole) profileRole.textContent = 'Klik untuk masuk';
       logoutBtn.classList.add('hidden');
       secLogout.classList.add('hidden');
     }
@@ -610,6 +769,7 @@
     renderActivitiesView();
     renderRailActivities();
     renderFulfillmentCard();
+    renderSidebarProjects();
   }
 
   function renderRailFeed() {
@@ -689,6 +849,8 @@
       return;
     }
     state.expenses = res.data.data || [];
+    const expBadge = $('sbExpenseCount');
+    if (expBadge) expBadge.textContent = String(state.expenses.length);
     renderExpensesTable();
     renderRailFeed();
   }
@@ -937,9 +1099,58 @@
   function wireEvents() {
     document.querySelectorAll('.rail-btn[data-view]').forEach((btn) => {
       btn.addEventListener('click', () => switchView(btn.dataset.view));
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        btn.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        btn.style.setProperty('--my', `${e.clientY - rect.top}px`);
+      });
+    });
+
+    $('btnSidebarExpand')?.addEventListener('click', () => setSidebarExpanded(!state.sidebarExpanded));
+    $('btnSidebarCollapse')?.addEventListener('click', () => setSidebarExpanded(false));
+    $('btnSidebarSearch')?.addEventListener('click', () => {
+      if (!state.sidebarExpanded) setSidebarExpanded(true);
+      setTimeout(() => $('sidebarSearchInput')?.focus(), 180);
+    });
+
+    $('sidebarSearchInput')?.addEventListener('input', (e) => {
+      const q = e.target.value;
+      $('searchExpense').value = q;
+      if (q.trim()) {
+        switchView('expenses');
+        renderExpensesTable();
+      }
+    });
+
+    $('btnSidebarAddActivity')?.addEventListener('click', () => {
+      $('activityModalErr').classList.add('hidden');
+      $('activityDialog').showModal();
+      animateDialogOpen($('activityDialog'));
+    });
+
+    $('btnRailPrimaryAction')?.addEventListener('click', () => openExpenseModal());
+    $('btnRailRefreshQuick')?.addEventListener('click', async () => {
+      await refreshAll();
+      showToast('Data dashboard diperbarui dari API.', 'ok');
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setSidebarExpanded(!state.sidebarExpanded);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (!state.sidebarExpanded) setSidebarExpanded(true);
+        setTimeout(() => $('sidebarSearchInput')?.focus(), 180);
+      }
     });
 
     document.body.addEventListener('click', (e) => {
+      const projBtn = e.target.closest('[data-jump-activity]');
+      if (projBtn) {
+        switchView('activities');
+        return;
+      }
       const jumper = e.target.closest('[data-jump-view]');
       if (jumper) switchView(jumper.dataset.jumpView);
     });
@@ -1069,6 +1280,7 @@
   renderSession();
   renderRbacMatrix(state.user?.role === 'mahasiswa' ? 'mahasiswa' : 'admin');
   wireEvents();
+  moveSidebarNotch('overview', true);
   $('gqlQuery').value = GQL_PRESETS.activities.query;
   $('gqlVars').value = GQL_PRESETS.activities.variables;
   refreshAll();
