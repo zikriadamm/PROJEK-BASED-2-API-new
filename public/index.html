@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Untad Field Research &amp; Expense API — Dashboard</title>
+  <link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">FT</div>
+        <div>
+          <h1>Untad Research &amp; Expense API</h1>
+          <p class="subtitle">Fakultas Teknik Universitas Tadulako &middot; Kelompok 2 TIC (Sub-CPMK 5)</p>
+        </div>
+      </div>
+
+      <div class="topbar-controls">
+        <label class="api-key-box" for="apiKeyInput">
+          <span>x-api-key</span>
+          <input id="apiKeyInput" type="text" value="untad-api-key-2026" autocomplete="off" spellcheck="false">
+        </label>
+        <div id="sessionBadge" class="session-badge session-guest">Belum Login</div>
+        <button id="btnLogout" class="btn btn-ghost hidden" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <!-- Panel Autentikasi -->
+    <section class="card auth-card" aria-label="Autentikasi API">
+      <div class="card-head">
+        <div>
+          <h2>Autentikasi &amp; Hak Akses (RBAC)</h2>
+          <p class="muted">Login memakai <code>POST /v2/auth/login</code> untuk mendapatkan signed token HMAC-SHA256.</p>
+        </div>
+        <div class="quick-fill">
+          <button id="btnFillAdmin" class="btn btn-sm btn-outline" type="button">Isi Demo Admin</button>
+          <button id="btnFillMhs" class="btn btn-sm btn-outline" type="button">Isi Demo Mahasiswa</button>
+        </div>
+      </div>
+      <form id="loginForm" class="login-grid">
+        <label>
+          <span>Username</span>
+          <input id="loginUsername" name="username" type="text" placeholder="admin / mahasiswa" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="loginPassword" name="password" type="password" placeholder="••••••••" required>
+        </label>
+        <div class="login-actions">
+          <button class="btn btn-primary" type="submit">Login &amp; Simpan Token</button>
+          <button id="btnRefreshAll" class="btn btn-outline" type="button">Muat Ulang Data</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Ringkasan Anggaran, Cuaca Open-Meteo, dan Kurs Valas -->
+    <section class="kpi-grid" aria-label="Ringkasan Sistem">
+      <article class="card kpi">
+        <span class="kpi-label">Total Realisasi Pengeluaran</span>
+        <strong id="kpiSpent" class="kpi-value">Memuat...</strong>
+        <span id="kpiPlafon" class="kpi-sub">Plafon: —</span>
+      </article>
+      <article class="card kpi">
+        <span class="kpi-label">Sisa Anggaran Riset</span>
+        <strong id="kpiRemaining" class="kpi-value">—</strong>
+        <span id="kpiCounts" class="kpi-sub">Kegiatan &amp; Catatan: —</span>
+      </article>
+      <article class="card kpi">
+        <span class="kpi-label">Cuaca Posko Untad (Open-Meteo)</span>
+        <strong id="kpiWeather" class="kpi-value">—</strong>
+        <span id="kpiWeatherMeta" class="kpi-sub">Kampus Untad Tondo, Palu</span>
+      </article>
+      <article class="card kpi">
+        <span class="kpi-label">Kurs Valas (ExchangeRate-API)</span>
+        <strong id="kpiRateStatus" class="kpi-value">—</strong>
+        <span id="kpiRateSource" class="kpi-sub">Sumber: —</span>
+      </article>
+    </section>
+
+    <!-- Navigasi Tab Utama -->
+    <nav class="tabs" role="tablist" aria-label="Menu Dashboard">
+      <button class="tab active" role="tab" aria-selected="true" data-tab="activities" type="button">Kegiatan Riset (/v2)</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="expenses" type="button">Pengeluaran (/v2)</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="graphql" type="button">GraphQL Explorer</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="versioning" type="button">Audit Versioning (/v1 vs /v2)</button>
+    </nav>
+
+    <!-- TAB 1: KEGIATAN RISET -->
+    <section id="tab-activities" class="tab-panel active" role="tabpanel">
+      <div class="panel-toolbar">
+        <div class="filter-group">
+          <label for="filterActivityStatus">Status:</label>
+          <select id="filterActivityStatus">
+            <option value="">Semua Status</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="COMPLETED">COMPLETED</option>
+            <option value="PLANNED">PLANNED</option>
+          </select>
+        </div>
+        <button id="btnOpenActivityModal" class="btn btn-primary" type="button">+ Tambah Kegiatan (Admin)</button>
+      </div>
+      <div id="activitiesList" class="cards-grid"></div>
+    </section>
+
+    <!-- TAB 2: PENGELUARAN -->
+    <section id="tab-expenses" class="tab-panel" role="tabpanel">
+      <div class="panel-toolbar">
+        <div class="filter-group">
+          <label for="filterExpenseActivity">Kegiatan:</label>
+          <select id="filterExpenseActivity">
+            <option value="">Semua Kegiatan</option>
+          </select>
+          <label for="filterExpenseCategory">Kategori:</label>
+          <select id="filterExpenseCategory">
+            <option value="">Semua Kategori</option>
+            <option value="akomodasi">akomodasi</option>
+            <option value="transportasi">transportasi</option>
+            <option value="konsumsi">konsumsi</option>
+            <option value="belanja">belanja</option>
+            <option value="hiburan">hiburan</option>
+            <option value="lainnya">lainnya</option>
+          </select>
+        </div>
+        <button id="btnOpenExpenseModal" class="btn btn-primary" type="button">+ Tambah Pengeluaran</button>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Pengeluaran &amp; Kegiatan</th>
+              <th>Kategori</th>
+              <th>Nominal Asli</th>
+              <th>Konversi IDR</th>
+              <th>Penginput</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="expensesTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 3: GRAPHQL EXPLORER -->
+    <section id="tab-graphql" class="tab-panel" role="tabpanel">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>GraphQL Explorer (<code>POST /graphql</code>)</h2>
+            <p class="muted">Otomatis menyertakan <code>x-api-key</code> dan Bearer token sesi aktif bila sudah login.</p>
+          </div>
+          <div class="quick-fill">
+            <button class="btn btn-sm btn-outline" type="button" data-gql-preset="activities">Preset: Activities + Weather</button>
+            <button class="btn btn-sm btn-outline" type="button" data-gql-preset="expenses">Preset: Expenses + Activity</button>
+            <button class="btn btn-sm btn-outline" type="button" data-gql-preset="delete">Preset: Uji RBAC Mutation</button>
+          </div>
+        </div>
+        <div class="gql-grid">
+          <div>
+            <label class="field-block">
+              <span>Query / Mutation</span>
+              <textarea id="gqlQuery" rows="11" spellcheck="false"></textarea>
+            </label>
+            <label class="field-block">
+              <span>Variables (JSON opsional)</span>
+              <textarea id="gqlVars" rows="3" spellcheck="false">{}</textarea>
+            </label>
+            <button id="btnRunGraphQL" class="btn btn-primary" type="button">Jalankan GraphQL</button>
+          </div>
+          <div>
+            <div class="output-head">
+              <span>Response JSON</span>
+              <span id="gqlStatusBadge" class="badge">Siap</span>
+            </div>
+            <pre id="gqlOutput" class="code-box">Klik "Jalankan GraphQL" untuk menguji POST /graphql.</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: AUDIT VERSIONING /v1 vs /v2 -->
+    <section id="tab-versioning" class="tab-panel" role="tabpanel">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Audit Versioning: <code>GET /v1/expenses</code> vs <code>GET /v2/expenses</code></h2>
+            <p class="muted">Memeriksa header RFC 8594 (<code>Sunset</code>, <code>Deprecation</code>, <code>Link</code>) dan perubahan struktur data (breaking change objek <code>cost</code>).</p>
+          </div>
+          <button id="btnRunVersionAudit" class="btn btn-primary" type="button">Jalankan Audit /v1 vs /v2</button>
+        </div>
+
+        <div id="v1HeadersBanner" class="headers-grid">
+          <div class="header-pill"><span>Status /v1</span><strong id="auditV1Status">—</strong></div>
+          <div class="header-pill"><span>Sunset</span><strong id="auditSunset">—</strong></div>
+          <div class="header-pill"><span>Deprecation</span><strong id="auditDeprecation">—</strong></div>
+          <div class="header-pill"><span>Link</span><strong id="auditLink">—</strong></div>
+        </div>
+
+        <div class="audit-grid">
+          <div>
+            <div class="output-head"><span>Sample Response <code>GET /v1/expenses</code> (Legacy Flat)</span></div>
+            <pre id="auditV1Body" class="code-box">Belum dijalankan.</pre>
+          </div>
+          <div>
+            <div class="output-head"><span>Sample Response <code>GET /v2/expenses</code> (Structured Cost + Activity)</span></div>
+            <pre id="auditV2Body" class="code-box">Belum dijalankan.</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL TAMBAH KEGIATAN (ADMIN) -->
+  <dialog id="activityDialog" class="modal">
+    <form id="activityForm" method="dialog" class="modal-body">
+      <div class="modal-head">
+        <h3>Tambah Kegiatan Riset (<code>POST /v2/activities</code>)</h3>
+        <button class="btn btn-sm btn-ghost" type="button" data-close-dialog="activityDialog">&times;</button>
+      </div>
+      <p class="muted">Membutuhkan login role <strong>admin</strong>. Login sebagai <strong>mahasiswa</strong> akan menghasilkan <code>403 Forbidden</code>.</p>
+      <div id="activityModalErr" class="toast toast-warn hidden" role="alert"></div>
+      <label class="field-block"><span>Judul Kegiatan *</span><input name="title" type="text" required placeholder="Survei Geospasial Teluk Tomini"></label>
+      <label class="field-block"><span>Lokasi *</span><input name="location" type="text" required placeholder="Kabupaten Parigi Moutong, Sulawesi Tengah"></label>
+      <div class="form-row">
+        <label class="field-block"><span>Plafon Anggaran (IDR) *</span><input name="budgetLimitIDR" type="number" min="1" step="1000" required value="10000000"></label>
+        <label class="field-block">
+          <span>Status</span>
+          <select name="status">
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="PLANNED">PLANNED</option>
+            <option value="COMPLETED">COMPLETED</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label class="field-block"><span>Unit / Jurusan</span><input name="unit" type="text" value="Fakultas Teknik Untad"></label>
+        <label class="field-block"><span>Ketua Peneliti</span><input name="leadResearcher" type="text" placeholder="Nama Peneliti"></label>
+      </div>
+      <label class="field-block"><span>Deskripsi</span><textarea name="description" rows="2" placeholder="Ringkasan kegiatan riset lapangan"></textarea></label>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" data-close-dialog="activityDialog">Batal</button>
+        <button class="btn btn-primary" type="submit">Simpan Kegiatan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL TAMBAH PENGELUARAN -->
+  <dialog id="expenseDialog" class="modal">
+    <form id="expenseForm" method="dialog" class="modal-body">
+      <div class="modal-head">
+        <h3>Tambah Pengeluaran Riset (<code>POST /v2/expenses</code>)</h3>
+        <button class="btn btn-sm btn-ghost" type="button" data-close-dialog="expenseDialog">&times;</button>
+      </div>
+      <p class="muted">Membutuhkan login (role <strong>admin</strong> atau <strong>mahasiswa</strong>) dan wajib terhubung ke <code>activityId</code>.</p>
+      <div id="expenseModalErr" class="toast toast-err hidden" role="alert"></div>
+      <label class="field-block">
+        <span>Kegiatan Riset (activityId) *</span>
+        <select id="expenseActivitySelect" name="activityId" required></select>
+      </label>
+      <label class="field-block"><span>Judul Pengeluaran *</span><input name="title" type="text" required placeholder="Sewa Perahu Pemantauan Sensor"></label>
+      <div class="form-row">
+        <label class="field-block">
+          <span>Kategori *</span>
+          <select name="category" required>
+            <option value="transportasi">transportasi</option>
+            <option value="akomodasi">akomodasi</option>
+            <option value="konsumsi">konsumsi</option>
+            <option value="belanja">belanja</option>
+            <option value="hiburan">hiburan</option>
+            <option value="lainnya">lainnya</option>
+          </select>
+        </label>
+        <label class="field-block"><span>Tanggal *</span><input name="date" type="date" required value="2026-11-24"></label>
+      </div>
+      <div class="form-row">
+        <label class="field-block"><span>Nominal *</span><input name="amount" type="number" min="0.01" step="any" required placeholder="500000"></label>
+        <label class="field-block">
+          <span>Mata Uang *</span>
+          <select name="currency" required>
+            <option value="IDR">IDR</option>
+            <option value="USD">USD</option>
+            <option value="JPY">JPY</option>
+            <option value="EUR">EUR</option>
+            <option value="SGD">SGD</option>
+            <option value="MYR">MYR</option>
+            <option value="GBP">GBP</option>
+            <option value="AUD">AUD</option>
+          </select>
+        </label>
+      </div>
+      <label class="field-block"><span>Catatan</span><input name="notes" type="text" placeholder="Keterangan tambahan (opsional)"></label>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" data-close-dialog="expenseDialog">Batal</button>
+        <button class="btn btn-primary" type="submit">Simpan Pengeluaran</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/public/app.js"></script>
+</body>
+</html>
