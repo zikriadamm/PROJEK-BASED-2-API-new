@@ -58,4 +58,19 @@ describe('Issue #3 — Integration Test REST v1 Legacy & Sunset (src/v1Router.js
     assert.equal(res.headers.get('sunset'), 'Thu, 31 Dec 2026 23:59:59 GMT');
     assert.equal(res.headers.get('deprecation'), 'true');
   });
+
+  it('menolak ID non-integer dengan 400 dan sub-path tidak dikenal dengan 404 beserta header Sunset', async () => {
+    const badId = await fetch(`${baseUrl}/v1/expenses/abc`, {
+      headers: { 'x-api-key': config.API_KEY }
+    });
+    assert.equal(badId.status, 400);
+    assert.equal(badId.headers.get('sunset'), 'Thu, 31 Dec 2026 23:59:59 GMT');
+
+    const badPath = await fetch(`${baseUrl}/v1/expenses/1/extra`, {
+      method: 'POST',
+      headers: { 'x-api-key': config.API_KEY }
+    });
+    assert.equal(badPath.status, 404);
+    assert.equal(badPath.headers.get('sunset'), 'Thu, 31 Dec 2026 23:59:59 GMT');
+  });
 });
