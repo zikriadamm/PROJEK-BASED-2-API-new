@@ -1,109 +1,208 @@
-# Untad Field Research & Travel Expense API (Sub-CPMK 5)
+# Untad Field Research & Travel Expense API
 
-Proyek Akhir Mata Kuliah **Rekayasa API (`F09252013`)** — Kelas **TIC**  
-**Kelompok 2** — Program Studi S1 Teknik Informatika, Fakultas Teknik Universitas Tadulako  
-Repositori GitHub: https://github.com/zikriadamm/PROJEK-BASED-2-API-new
+API untuk mencatat kegiatan riset lapangan dan pengeluaran perjalanan dinas di lingkungan Fakultas Teknik Universitas Tadulako. Proyek ini dibuat oleh Kelompok 2 TIC sebagai Proyek Akhir Rekayasa API (Sub-CPMK 5).
 
----
+Server dibangun memakai modul bawaan Node.js (`node:http`) tanpa framework web, dengan satu dependensi tambahan yaitu `graphql`. Data disimpan dalam file JSON di folder `data/`, sementara kurs mata uang dan cuaca diambil dari ExchangeRate-API dan Open-Meteo (otomatis beralih ke data fallback jika koneksi internet terputus atau timeout).
 
-## 1. Gambaran Proyek
-Proyek ini mengembangkan prototipe **Evaluasi Sub-CPMK 4** (*Travel Expense Tracker & Currency Converter API*) menjadi layanan API berstandar industri berlatar **Universitas Tadulako & Sulawesi Tengah** untuk pengelolaan kegiatan riset lapangan dan biaya perjalanan dinas Fakultas Teknik Untad.
+## Prasyarat
 
-### Ketentuan Teknis yang Dipatuhi
-- Dibangun dengan **Node.js** di atas modul bawaan `node:http` (**tanpa framework** seperti Express/Fastify).
-- Dependensi tambahan **hanya `graphql`** (sesuai Ketentuan Teknis D.1). Pengujian otomatis memakai `node --test` bawaan Node.js.
-- Penyimpanan persisten memakai **file JSON** (`data/activities.json`, `data/expenses.json`, `data/users.json`).
-- Terintegrasi dengan **2 Public API resmi** tanpa API key (**ExchangeRate-API** & **Open-Meteo**) dengan *timeout* 4 detik dan *cache fallback*.
-- Dilengkapi keamanan API Key (`x-api-key`), login bertoken HMAC-SHA256 berbatas waktu, password *hash* `scrypt`, RBAC (`admin` & `mahasiswa`), versioning `/v1` (*Sunset*) + `/v2`, GraphQL `POST /graphql`, OpenAPI 3.0.3, Postman Collection Runner, Client Console CLI, serta Web Dashboard.
+- Node.js versi 20 atau lebih baru (diuji pada Node.js v24)
+- npm
 
----
-
-## 2. Anggota Kelompok, GitHub Issues & Pembagian Tugas
-
-Seluruh pekerjaan dilacak melalui **GitHub Issues** di repositori ini. Setiap anggota mengerjakan **branch fitur sendiri dari `develop`** dan hanya membuat **file eksklusif miliknya** sehingga bebas *merge conflict*.
-
-| No | Nama & Stambuk | Area Tugas & GitHub Issues | File Eksklusif | Panduan Lengkap |
-| :-: | :--- | :--- | :--- | :--- |
-| 1 | **Muhammad Zikri Adam**<br>`F5512530117` | Security & Auth (`#1`), GraphQL (`#5`), Web Dashboard (`#6`) | `src/security.js`, `src/authRouter.js`, `src/graphqlSchema.js`, `public/` | [01-zikri-security-graphql-web.md](docs/tasks/01-zikri-security-graphql-web.md) |
-| 2 | **Lidiya**<br>`F5512530118` | REST API v2 Berelasi (`#4`) | `src/v2Router.js` | [02-lidiya-rest-v2.md](docs/tasks/02-lidiya-rest-v2.md) |
-| 3 | **Tabita Creaselia Belicia Theona**<br>`F5512520086` | 2 Public API (`#2`), REST v1 Legacy & Sunset (`#3`) | `src/publicApis.js`, `src/v1Router.js` | [03-tabita-public-apis-v1.md](docs/tasks/03-tabita-public-apis-v1.md) |
-| 4 | **Trista Sheryl Lambei**<br>`F5512530106` | OpenAPI & Client CLI (`#7`), Postman Runner (`#8`) | `openapi.yaml`, `postman/`, `client.js` | [04-trista-docs-testing-cli.md](docs/tasks/04-trista-docs-testing-cli.md) |
-
-### Dokumen Arsitektur & Domain
-- Istilah domain kanonis: [`GLOSSARY.md`](GLOSSARY.md)
-- Catatan keputusan arsitektur: [`docs/adr/0001-arsitektur-modular-http-tanpa-framework.md`](docs/adr/0001-arsitektur-modular-http-tanpa-framework.md)
-- Konfigurasi agen & issue tracker: [`AGENTS.md`](AGENTS.md) & [`docs/agents/`](docs/agents/)
-
-> **Aturan anti merge conflict:**  
-> Jangan mengubah `server.js`, `package.json`, atau modul inti (`src/config.js`, `src/httpHelpers.js`, `src/storage.js`, `src/validators.js`, `src/moduleLoader.js`) dari branch fitur. `src/moduleLoader.js` otomatis mengaktifkan file modul milikmu begitu kamu membuatnya.
-
----
-
-## 3. Cara Menjalankan & Menguji di Lokal
+## Instalasi dan Menjalankan Server
 
 ```bash
-# 1. Clone repositori
 git clone https://github.com/zikriadamm/PROJEK-BASED-2-API-new.git
 cd PROJEK-BASED-2-API-new
-
-# 2. Instal dependensi (hanya graphql)
 npm install
+```
 
-# 3. Buat file .env dari template (JANGAN commit .env)
-Copy-Item .env.example .env   # Windows PowerShell (atau: cp .env.example .env)
+Salin template konfigurasi ke `.env`:
 
-# 4. Jalankan server API & Web Dashboard (http://localhost:3000/)
+```powershell
+# Windows PowerShell
+Copy-Item .env.example .env
+```
+
+```bash
+# macOS / Linux / Git Bash
+cp .env.example .env
+```
+
+Jalankan server:
+
+```bash
 npm start
+```
 
-# 5. Jalankan Client Console CLI (pada terminal kedua)
+Server aktif di `http://localhost:3000`. Kamu bisa membuka:
+
+- `http://localhost:3000/` untuk Web Dashboard
+- `http://localhost:3000/api` untuk mengecek status server dan modul
+- `http://localhost:3000/openapi.yaml` untuk mengambil file spesifikasi OpenAPI 3.0.3
+
+## Konfigurasi `.env`
+
+| Variabel | Nilai Default di `.env.example` | Keterangan |
+| :--- | :--- | :--- |
+| `PORT` | `3000` | Port server HTTP |
+| `API_KEY` | `ganti-dengan-api-key-anda` | Nilai yang wajib dikirim pada header `x-api-key` |
+| `JWT_SECRET` | `ganti-dengan-rahasia-jwt-minimal-32-karakter` | Kunci rahasia untuk menandatangani token HMAC-SHA256 |
+| `NODE_ENV` | `development` | Mode lingkungan aplikasi |
+
+Jangan commit file `.env` ke repositori. Jika kamu mengganti `API_KEY` di `.env`, samakan juga nilainya pada header request, Web Dashboard, dan environment Postman.
+
+## Akun Bawaan
+
+Data akun tersimpan di `data/users.json` dengan password yang di-hash memakai `scrypt`.
+
+| Username | Password | Role | Hak Akses |
+| :--- | :--- | :--- | :--- |
+| `admin` | `admin123` | `admin` | Akses penuh semua endpoint REST dan mutation GraphQL |
+| `mahasiswa` | `mhs123` | `mahasiswa` | Melihat data, menambah dan mengubah pengeluaran; mendapat `403` saat mengubah kegiatan atau menghapus pengeluaran |
+
+## Contoh Pemakaian Cepat
+
+Semua endpoint di bawah `/v1`, `/v2`, dan `/graphql` memerlukan header `x-api-key`. Endpoint yang mengubah atau membaca data terproteksi juga memerlukan header `Authorization: Bearer <token>`.
+
+### 1. Login untuk mendapatkan token
+
+```bash
+curl -X POST http://localhost:3000/v2/auth/login \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: ganti-dengan-api-key-anda" \
+  -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
+```
+
+Salin nilai `data.token` dari respons untuk langkah berikutnya.
+
+### 2. Melihat daftar kegiatan riset
+
+```bash
+curl http://localhost:3000/v2/activities \
+  -H "x-api-key: ganti-dengan-api-key-anda" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Setiap kegiatan sudah dilengkapi ringkasan keuangan dan prakiraan cuaca dari Open-Meteo.
+
+### 3. Menambahkan pengeluaran baru
+
+Pada versi v2, setiap pengeluaran wajib terhubung ke kegiatan yang valid melalui `activityId`. Kategori yang diterima: `akomodasi`, `transportasi`, `konsumsi`, `belanja`, `hiburan`, `lainnya`.
+
+```bash
+curl -X POST http://localhost:3000/v2/expenses \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: ganti-dengan-api-key-anda" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -d "{\"activityId\":1,\"title\":\"Sewa kendaraan survei Palu-Donggala\",\"category\":\"transportasi\",\"amount\":450000,\"currency\":\"IDR\",\"date\":\"2026-05-10\"}"
+```
+
+Jika `currency` diisi mata uang asing (`USD`, `JPY`, `EUR`, `SGD`, `MYR`, `GBP`, atau `AUD`), server otomatis mengonversinya ke `IDR` memakai ExchangeRate-API.
+
+### 4. Query melalui GraphQL
+
+```bash
+curl -X POST http://localhost:3000/graphql \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: ganti-dengan-api-key-anda" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -d "{\"query\":\"{ activities { id title location currentWeather { condition temperature } expenses { id title cost { formattedIDR } } } }\"}"
+```
+
+### 5. Mengecek endpoint legacy v1
+
+```bash
+curl -i http://localhost:3000/v1/expenses \
+  -H "x-api-key: ganti-dengan-api-key-anda"
+```
+
+Endpoint `/v1` hanya menerima `GET` dan menyertakan header `Deprecation`, `Sunset`, serta `Link` menuju `/v2/expenses`. Metode selain `GET` mengembalikan status `410 Gone`.
+
+## Daftar Endpoint
+
+| Method | Path | Akses | Fungsi |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | Publik | Web Dashboard |
+| `GET` | `/api` | Publik | Ringkasan server dan status modul |
+| `GET` | `/openapi.yaml` | Publik | Spesifikasi OpenAPI 3.0.3 |
+| `POST` | `/v2/auth/login` | API Key | Login dan menghasilkan token Bearer |
+| `POST` | `/v2/auth/logout` | API Key + Token | Mencabut token aktif |
+| `GET` | `/v2/auth/me` | API Key + Token | Menampilkan profil pengguna aktif |
+| `GET` | `/v2/activities` | API Key + Token | Daftar kegiatan (mendukung filter `?status=ACTIVE`) |
+| `GET` | `/v2/activities/:id` | API Key + Token | Detail kegiatan beserta pengeluaran terkait |
+| `POST` | `/v2/activities` | `admin` | Membuat kegiatan baru |
+| `PUT` | `/v2/activities/:id` | `admin` | Memperbarui data kegiatan |
+| `DELETE` | `/v2/activities/:id` | `admin` | Menghapus kegiatan (`409` jika masih memiliki pengeluaran) |
+| `GET` | `/v2/expenses` | API Key + Token | Daftar pengeluaran (mendukung `?activityId=`) |
+| `GET` | `/v2/expenses/summary` | API Key + Token | Ringkasan anggaran, rekap kategori, dan cuaca Untad |
+| `GET` | `/v2/expenses/:id` | API Key + Token | Detail satu pengeluaran |
+| `POST` | `/v2/expenses` | `admin`, `mahasiswa` | Menambah pengeluaran (wajib `activityId`) |
+| `PUT` | `/v2/expenses/:id` | `admin`, `mahasiswa` | Memperbarui pengeluaran |
+| `DELETE` | `/v2/expenses/:id` | `admin` | Menghapus pengeluaran |
+| `GET` | `/v1/expenses` | API Key | Daftar pengeluaran format lama (deprecated) |
+| `GET` | `/v1/expenses/:id` | API Key | Detail pengeluaran format lama (deprecated) |
+| `POST` | `/graphql` | API Key (+ Token untuk mutation) | Query berelasi dan mutation CRUD |
+
+## Cara Lain Mencoba API
+
+### Web Dashboard
+
+Buka `http://localhost:3000/` di browser setelah menjalankan `npm start`. Masukkan nilai `x-api-key` yang sesuai dengan `.env`, lalu login memakai akun `admin` atau `mahasiswa`. Dashboard ini menyediakan manajemen kegiatan, pencatatan pengeluaran, konsol GraphQL, pengujian header `/v1`, serta panel keamanan RBAC.
+
+### Client Console CLI
+
+Jalankan di terminal terpisah saat server aktif:
+
+```bash
 npm run client
+```
 
-# 6. Jalankan seluruh test otomatis bawaan Node.js
+Menu interaktif di terminal memungkinkan kamu login, melihat kegiatan dan pengeluaran, membuat data baru, menjalankan query GraphQL, serta menguji header `Sunset` pada `/v1`.
+
+### Postman Collection Runner
+
+Impor kedua file berikut ke Postman:
+
+- `postman/PBL2_Untad_Research_Expense_API.postman_collection.json`
+- `postman/PBL2_Untad_Local.postman_environment.json`
+
+Pilih environment **PBL2 Untad Local Environment**, sesuaikan variabel `apiKey` jika kamu mengubah `.env`, lalu jalankan **Run collection**. Koleksi ini berisi 15 skenario uji (positif dan negatif), menyimpan token secara otomatis, dan membersihkan data uji yang dibuatnya sehingga aman dijalankan berulang kali.
+
+### Dokumentasi OpenAPI (Swagger)
+
+Buka `openapi.yaml` di https://editor.swagger.io/ atau gunakan URL mentah dari repositori ini untuk melihat seluruh skema request, response, dan status error.
+
+## Menjalankan Pengujian Otomatis
+
+```bash
 npm test
 ```
 
-> **Catatan `API_KEY`:** Nilai default di `.env.example`, kolom `x-api-key` pada Web Dashboard (`http://localhost:3000/`), dan variabel `apiKey` di Postman Environment sama-sama menggunakan `ganti-dengan-api-key-anda`. Jika kamu mengubah `API_KEY` di `.env`, samakan pula nilainya di Postman Environment dan kolom `x-api-key` Web Dashboard.
+Perintah ini menjalankan seluruh suite pengujian bawaan `node --test` (40 test case mencakup autentikasi, RBAC, Public API fallback, REST v1, REST v2, GraphQL, Web Dashboard, OpenAPI, Postman, dan CLI).
 
-### Pengujian & Dokumentasi API
-- **Web Dashboard:** Buka `http://localhost:3000/` (5 tampilan: Overview Bento, Kegiatan Riset, Pengeluaran, GraphQL & Audit `/v1`, dan Keamanan & RBAC).
-- **Spesifikasi OpenAPI 3.0.3:** Tersedia di [`openapi.yaml`](openapi.yaml) atau `GET http://localhost:3000/openapi.yaml` (siap ditempel ke https://editor.swagger.io/).
-- **Postman Collection Runner:** Impor [`postman/PBL2_Untad_Research_Expense_API.postman_collection.json`](postman/PBL2_Untad_Research_Expense_API.postman_collection.json) dan [`postman/PBL2_Untad_Local.postman_environment.json`](postman/PBL2_Untad_Local.postman_environment.json), pilih environment **PBL2 Untad Local Environment**, lalu jalankan **Run collection** (`15 test case` positif & negatif, otomatis menyimpan token dan idempoten).
-- **Status Server & Modul:** Buka `http://localhost:3000/api`.
+## Struktur Proyek
 
-### Akun Demo Bawaan (`data/users.json`)
-| Username | Password | Role | Hak Akses |
-| :--- | :--- | :--- | :--- |
-| `admin` | `admin123` | `admin` | Akses penuh seluruh endpoint & mutation GraphQL |
-| `mahasiswa` | `mhs123` | `mahasiswa` | Melihat data & menambah/mengubah pengeluaran; `403 Forbidden` pada CRUD `activities` & `DELETE /v2/expenses/:id` |
+```text
+.
+├── server.js          # Entry point HTTP server dan routing utama
+├── client.js          # Client console CLI interaktif
+├── openapi.yaml       # Spesifikasi OpenAPI 3.0.3
+├── .env.example       # Template variabel lingkungan
+├── src/               # Modul config, storage, validator, auth, public API, router v1/v2, GraphQL
+├── data/              # Penyimpanan JSON (activities.json, expenses.json, users.json)
+├── public/            # File statis Web Dashboard (HTML, CSS, JS)
+├── postman/           # Koleksi dan environment Postman
+└── test/              # Unit test dan integration test (node --test)
+```
 
----
+## Tim Pengembang
 
-## 4. Alur Kerja Git (`feat/issue-*` → `develop` → `main`)
+Kelompok 2 TIC, S1 Teknik Informatika, Fakultas Teknik Universitas Tadulako:
 
-1. Terima undangan **Collaborator** di GitHub, lalu set identitas Git atas namamu sendiri:
-   ```bash
-   git config user.name "Nama Lengkap Kamu"
-   git config user.email "email-github-kamu@example.com"
-   ```
-2. Ambil branch `develop` terbaru dan buat branch sesuai nomor GitHub Issue yang di-assign ke kamu:
-   ```bash
-   git checkout develop
-   git pull origin develop
-   git checkout -b feat/issue-<nomor>-<nama-singkat>
-   ```
-3. Kerjakan seluruh checklist (*Acceptance criteria*) pada Issue, tambahkan test otomatis di `test/`, lalu verifikasi dengan `npm test` dan `npm start`.
-4. Commit dan push branch-mu ke GitHub:
-   ```bash
-   git status
-   git add <file-eksklusif-dan-test-kamu>
-   git commit -m "feat(<area>): deskripsi singkat (#<nomor>)"
-   git push -u origin feat/issue-<nomor>-<nama-singkat>
-   ```
-5. Buka **Pull Request ke branch `develop`** di GitHub dan cantumkan `Closes #<nomor>` pada deskripsi PR.
-6. Setelah seluruh fitur terintegrasi dan lolos uji di `develop`, buka PR dari `develop` → `main`, lalu buat tag rilis akhir:
-   ```bash
-   git checkout main
-   git pull origin main
-   git tag -a v2.0.0 -m "Rilis final Sub-CPMK 5 Kelompok 2 TIC"
-   git push origin v2.0.0
-   ```
+| Nama | NIM | Kontribusi |
+| :--- | :--- | :--- |
+| Muhammad Zikri Adam | F5512530117 | Autentikasi & RBAC, GraphQL, Web Dashboard |
+| Lidiya | F5512530118 | REST API v2 berelasi |
+| Tabita Creaselia Belicia Theona | F5512520086 | Integrasi Public API dan REST v1 legacy |
+| Trista Sheryl Lambei | F5512530106 | Spesifikasi OpenAPI, Client CLI, Postman Collection Runner |
