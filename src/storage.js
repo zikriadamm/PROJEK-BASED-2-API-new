@@ -2,22 +2,48 @@ const fs = require('fs/promises');
 const path = require('path');
 const config = require('./config');
 
-async function readJSON(filePath, defaultValue = []) {
+// Antrean per-file agar baca-tulis JSON konkuren dalam satu proses tidak pernah saling memotong
+const fileQueues = new Map();
+
+function withFileLock(filePath, fn) {
+  const prev = fileQueues.get(filePath) || Promise.resolve();
+  const next = prev.then(fn, fn);
+  fileQueues.set(filePath, next.catch(() => {}));
+  return next;
+}
+
+async function readJSONUnlocked(filePath, defaultValue = []) {
   try {
     const data = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(data);
   } catch (err) {
     if (err.code === 'ENOENT') {
-      await writeJSON(filePath, defaultValue);
+      await writeJSONUnlocked(filePath, defaultValue);
       return defaultValue;
     }
     throw err;
   }
 }
 
-async function writeJSON(filePath, data) {
+async function writeJSONUnlocked(filePath, data) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  const serialized = JSON.stringify(data, null, 2) + '\n';
+  const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  await fs.writeFile(tmpPath, serialized, 'utf-8');
+  try {
+    await fs.rename(tmpPath, filePath);
+  } catch (err) {
+    await fs.copyFile(tmpPath, filePath);
+    await fs.unlink(tmpPath).catch(() => {});
+  }
+}
+
+function readJSON(filePath, defaultValue = []) {
+  return withFileLock(filePath, () => readJSONUnlocked(filePath, defaultValue));
+}
+
+function writeJSON(filePath, data) {
+  return withFileLock(filePath, () => writeJSONUnlocked(filePath, data));
 }
 
 function nextId(items) {

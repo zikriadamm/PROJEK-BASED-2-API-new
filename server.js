@@ -49,10 +49,10 @@ function buildApiOverview() {
     status: 'ONLINE',
     kelompok: 'Kelompok 2 TIC - S1 Teknik Informatika, Fakultas Teknik Universitas Tadulako',
     anggota: [
-      { nama: 'Muhammad Zikri Adam', stambuk: 'F5512530117', branch: 'feat/security-graphql-web' },
-      { nama: 'Lidiya', stambuk: 'F5512530118', branch: 'feat/rest-v2' },
-      { nama: 'Tabita Creaselia Belicia Theona', stambuk: 'F5512520086', branch: 'feat/public-apis-v1' },
-      { nama: 'Trista Sheryl Lambei', stambuk: 'F5512530106', branch: 'feat/docs-testing-cli' }
+      { nama: 'Muhammad Zikri Adam', stambuk: 'F5512530117', branches: ['feat/issue-1-security-auth', 'feat/issue-5-graphql', 'feat/issue-6-web-dashboard', 'style/web-dashboard-v15'] },
+      { nama: 'Lidiya', stambuk: 'F5512530118', branches: ['feat/issue-4-rest-v2'] },
+      { nama: 'Tabita Creaselia Belicia Theona', stambuk: 'F5512520086', branches: ['feat/public-apis-v1'] },
+      { nama: 'Trista Sheryl Lambei', stambuk: 'F5512530106', branches: ['feat/issue-7-docs-cli', 'feat/issue-8-postman'] }
     ],
     statusModul: {
       ...moduleStatus,
@@ -222,10 +222,10 @@ if (require.main === module) {
   console.log('================================================================================');
   console.log('  FINAL PROJECT REKAYASA API (Sub-CPMK 5) - KELOMPOK 2 TIC');
   console.log('  Sistem Manajemen Biaya & Logistik Riset Lapangan Fakultas Teknik Untad');
-  console.log('  1. Muhammad Zikri Adam (F5512530117)           - feat/security-graphql-web');
-  console.log('  2. Lidiya (F5512530118)                        - feat/rest-v2');
-  console.log('  3. Tabita Creaselia Belicia Theona (F5512520086) - feat/public-apis-v1');
-  console.log('  4. Trista Sheryl Lambei (F5512530106)          - feat/docs-testing-cli');
+  console.log('  1. Muhammad Zikri Adam (F5512530117)           - Issues #1, #5, #6');
+  console.log('  2. Lidiya (F5512530118)                        - Issue  #4 (feat/issue-4-rest-v2)');
+  console.log('  3. Tabita Creaselia Belicia Theona (F5512520086) - Issues #2, #3 (feat/public-apis-v1)');
+  console.log('  4. Trista Sheryl Lambei (F5512530106)          - Issues #7, #8 (feat/issue-7-docs-cli, feat/issue-8-postman)');
   console.log('================================================================================');
 
   server.listen(config.PORT, () => {

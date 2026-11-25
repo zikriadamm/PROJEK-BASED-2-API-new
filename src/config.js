@@ -21,10 +21,16 @@ if (fs.existsSync(envPath)) {
   });
 }
 
+if (!process.env.API_KEY || !process.env.JWT_SECRET) {
+  console.warn(
+    '[Config Warning] API_KEY atau JWT_SECRET belum diatur di file .env. Salin .env.example menjadi .env sebelum produksi/demo.'
+  );
+}
+
 module.exports = {
   PORT: parseInt(process.env.PORT, 10) || 3000,
-  API_KEY: process.env.API_KEY || 'untad-api-key-2026',
-  JWT_SECRET: process.env.JWT_SECRET || 'untad-rahasia-rekayasa-api-sub-cpmk-5-kelompok-2',
+  API_KEY: process.env.API_KEY || 'dev-only-set-api-key-in-env',
+  JWT_SECRET: process.env.JWT_SECRET || 'dev-only-set-jwt-secret-in-env',
   NODE_ENV: process.env.NODE_ENV || 'development',
   DATA_DIR: path.join(__dirname, '..', 'data'),
   FILES: {

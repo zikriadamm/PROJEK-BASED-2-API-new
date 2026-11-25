@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Untad Field Research &amp; Expense API — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+  <!-- Ambient Mesh Orbs for True Glassmorphism Refraction -->
+  <div class="bg-mesh" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+    <span class="orb orb-4"></span>
+  </div>
+
+  <div class="app-shell">
+    <!-- Floating Dark-Indigo Icon-Rail Sidebar (Admin V15 Style) -->
+    <aside class="icon-rail" aria-label="Navigasi Utama">
+      <div class="rail-brand" title="Untad FT · Kelompok 2 TIC">
+        <span>U</span>
+      </div>
+
+      <nav class="rail-nav" role="tablist" aria-label="Tampilan Dashboard">
+        <button class="rail-btn active" role="tab" aria-selected="true" data-view="overview" data-tip="Overview Bento" type="button" aria-label="Overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </button>
+        <button class="rail-btn" role="tab" aria-selected="false" data-view="activities" data-tip="Kegiatan Riset (/v2)" type="button" aria-label="Kegiatan Riset">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        </button>
+        <button class="rail-btn" role="tab" aria-selected="false" data-view="expenses" data-tip="Pengeluaran (/v2)" type="button" aria-label="Pengeluaran">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+        </button>
+        <button class="rail-btn" role="tab" aria-selected="false" data-view="explorer" data-tip="GraphQL &amp; Audit /v1" type="button" aria-label="GraphQL dan Audit Versioning">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+        <button class="rail-btn" role="tab" aria-selected="false" data-view="security" data-tip="Keamanan &amp; RBAC" type="button" aria-label="Keamanan dan RBAC">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+        </button>
+      </nav>
+
+      <div class="rail-footer">
+        <button id="railRefreshBtn" class="rail-btn rail-sub" data-tip="Muat Ulang Data" type="button" aria-label="Muat Ulang Data">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        </button>
+        <button id="btnLogout" class="rail-btn rail-sub hidden" data-tip="Logout Sesi" type="button" aria-label="Logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+        <div id="railAvatar" class="rail-avatar guest" title="Belum Login">G</div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Top Context Strip -->
+      <header class="top-strip">
+        <div>
+          <span class="crumb">FT Universitas Tadulako &middot; Kelompok 2 TIC</span>
+          <h1 id="viewTitle" class="page-heading">Dashboard Overview</h1>
+        </div>
+        <div class="top-actions">
+          <label class="key-pill" for="apiKeyInput">
+            <span class="key-label">x-api-key</span>
+            <input id="apiKeyInput" type="text" value="ganti-dengan-api-key-anda" placeholder="API_KEY dari .env" autocomplete="off" spellcheck="false">
+          </label>
+          <button id="sessionBadge" class="session-pill session-guest" type="button" data-jump-view="security">Belum Login</button>
+        </div>
+      </header>
+
+      <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+      <!-- ==================== VIEW 1: OVERVIEW BENTO GRID ==================== -->
+      <section id="view-overview" class="view-panel active">
+        <div class="bento-layout">
+          <!-- Left / Center Main Column (~65%) -->
+          <div class="bento-main">
+            <!-- Dark Midnight-Indigo Hero Banner -->
+            <article class="hero-banner">
+              <div class="hero-top">
+                <span class="hero-eyebrow">SUB-CPMK 5 &middot; REST /v2 &middot; GRAPHQL &middot; PUBLIC API</span>
+                <div class="avatar-stack" aria-label="Tim Kelompok 2">
+                  <span class="av av-1" title="Muhammad Zikri Adam">ZA</span>
+                  <span class="av av-2" title="Lidiya">LI</span>
+                  <span class="av av-3" title="Tabita Creaselia">TA</span>
+                  <span class="av av-4" title="Trista Sheryl">TR</span>
+                </div>
+              </div>
+              <h2 class="hero-title">
+                Riset lapangan FT Untad berjalan <em class="serif-accent">terkendali</em> hari ini.
+              </h2>
+              <p id="heroSubtext" class="hero-sub">
+                Seluruh transaksi valas dan pemantauan cuaca Sulawesi Tengah tersinkronisasi melalui server Node.js murni.
+              </p>
+              <div class="hero-cta-row">
+                <button id="btnHeroAddExpense" class="btn btn-lime" type="button">+ Catat Pengeluaran</button>
+                <button class="btn btn-dark-ghost" type="button" data-jump-view="security">Login &amp; Atur RBAC</button>
+                <button class="btn btn-dark-ghost" type="button" data-jump-view="explorer">Buka GraphQL</button>
+              </div>
+            </article>
+
+            <!-- 3-Column Bento Metrics Row -->
+            <div class="bento-row-3">
+              <!-- Card 1: Tim Kelompok 2 -->
+              <article class="card">
+                <div class="card-top">
+                  <h3>Tim Kelompok 2</h3>
+                  <span class="pill pill-soft">4 Aktif</span>
+                </div>
+                <div class="team-grid">
+                  <div class="mini-tile">
+                    <span class="mini-dot dot-indigo">ZA</span>
+                    <div><strong>Zikri</strong><small>Security &amp; UI</small></div>
+                  </div>
+                  <div class="mini-tile">
+                    <span class="mini-dot dot-emerald">LI</span>
+                    <div><strong>Lidiya</strong><small>REST /v2</small></div>
+                  </div>
+                  <div class="mini-tile">
+                    <span class="mini-dot dot-amber">TA</span>
+                    <div><strong>Tabita</strong><small>API &amp; /v1</small></div>
+                  </div>
+                  <div class="mini-tile">
+                    <span class="mini-dot dot-rose">TR</span>
+                    <div><strong>Trista</strong><small>Docs &amp; CLI</small></div>
+                  </div>
+                </div>
+              </article>
+
+              <!-- Card 2: Realisasi Total KPI -->
+              <article class="card kpi-card">
+                <div class="card-top">
+                  <h3>Realisasi &middot; Total</h3>
+                  <span id="kpiUtilBadge" class="pill pill-emerald">0%</span>
+                </div>
+                <strong id="kpiSpent" class="kpi-big">Memuat...</strong>
+                <p id="kpiPlafon" class="kpi-caption">Plafon: —</p>
+                <div class="progress-track">
+                  <div id="kpiProgressFill" class="progress-fill" style="width:0%"></div>
+                </div>
+                <div class="kpi-foot">
+                  <span>Sisa Anggaran</span>
+                  <strong id="kpiRemaining">—</strong>
+                </div>
+              </article>
+
+              <!-- Card 3: Sebaran Kategori (SVG Gradient Bar Chart) -->
+              <article class="card">
+                <div class="card-top">
+                  <h3>Kategori Biaya</h3>
+                  <span id="kpiCatCount" class="pill pill-indigo">IDR</span>
+                </div>
+                <div id="categoryChart" class="bar-chart" aria-label="Grafik pengeluaran per kategori"></div>
+              </article>
+            </div>
+
+            <!-- 2-Column Bottom Bento Row -->
+            <div class="bento-row-2">
+              <!-- Fulfillment-Style Barcode Tick Card -->
+              <article class="card fulfillment-card">
+                <div class="card-top">
+                  <div>
+                    <h3>Serapan Anggaran Riset</h3>
+                    <p class="card-sub">Proporsi realisasi terhadap total plafon FT Untad</p>
+                  </div>
+                  <div class="seg-toggle" role="group" aria-label="Filter serapan">
+                    <button class="seg-btn active" type="button" data-fulfill-scope="ALL">Semua</button>
+                    <button class="seg-btn" type="button" data-fulfill-scope="ACTIVE">Aktif</button>
+                  </div>
+                </div>
+
+                <div class="counter-pair">
+                  <div class="counter-box">
+                    <span class="counter-label">Total Kegiatan</span>
+                    <strong id="fulfillActivities" class="counter-num">0</strong>
+                  </div>
+                  <div class="counter-box">
+                    <span class="counter-label">Total Transaksi</span>
+                    <strong id="fulfillExpenses" class="counter-num">0</strong>
+                  </div>
+                  <div class="counter-box">
+                    <span class="counter-label">Serapan Plafon</span>
+                    <strong id="fulfillPct" class="counter-num accent-indigo">0%</strong>
+                  </div>
+                </div>
+
+                <!-- Signature V15 Vertical Tick / Barcode Progress Bar -->
+                <div id="barcodeBar" class="barcode-bar" aria-label="Indikator persentase serapan anggaran"></div>
+                <div class="barcode-legend">
+                  <span>0% Plafon</span>
+                  <span id="fulfillBudgetLabel">Status: AMAN</span>
+                  <span>100%</span>
+                </div>
+              </article>
+
+              <!-- Right Sub-Stack: Dark Weather/Rates Banner + Soft Lavender Status Card -->
+              <div class="sub-stack">
+                <article class="dark-card">
+                  <div class="card-top">
+                    <span class="dark-eyebrow">LIVE PUBLIC APIS</span>
+                    <span id="kpiRateStatus" class="pill pill-dark-ok">ONLINE</span>
+                  </div>
+                  <div class="weather-hero">
+                    <strong id="kpiWeather" class="weather-temp">—</strong>
+                    <span id="kpiWeatherMeta" class="weather-loc">Kampus Untad Tondo, Palu</span>
+                  </div>
+                  <p id="kpiRateSource" class="dark-sub">ExchangeRate-API &amp; Open-Meteo</p>
+                  <button id="btnQuickAudit" class="btn btn-lime btn-sm btn-full" type="button">Jalankan Audit /v1 Sunset</button>
+                </article>
+
+                <article class="card lavender-card">
+                  <div class="card-top">
+                    <h3>Status Arsitektur</h3>
+                    <span class="pill pill-indigo">Pure HTTP</span>
+                  </div>
+                  <div class="chip-wrap">
+                    <span class="status-chip"><i class="dot ok"></i>REST /v2</span>
+                    <span class="status-chip"><i class="dot ok"></i>REST /v1 Sunset</span>
+                    <span class="status-chip"><i class="dot ok"></i>POST /graphql</span>
+                    <span class="status-chip"><i class="dot ok"></i>HMAC-SHA256</span>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Rail (~35%) -->
+          <aside class="bento-rail">
+            <!-- Horizontal Week Calendar Strip -->
+            <article class="card calendar-card">
+              <div class="card-top">
+                <h3>November, 2026</h3>
+                <span class="pill pill-soft">Palu WITA</span>
+              </div>
+              <div class="week-strip" aria-label="Kalender minggu ini">
+                <div class="day-pill"><span>Min</span><strong>22</strong></div>
+                <div class="day-pill"><span>Sen</span><strong>23</strong></div>
+                <div class="day-pill"><span>Sel</span><strong>24</strong></div>
+                <div class="day-pill today"><span>Rab</span><strong>25</strong><i></i></div>
+                <div class="day-pill"><span>Kam</span><strong>26</strong></div>
+                <div class="day-pill"><span>Jum</span><strong>27</strong></div>
+                <div class="day-pill"><span>Sab</span><strong>28</strong></div>
+              </div>
+            </article>
+
+            <!-- Compact Top Research Activities -->
+            <article class="card">
+              <div class="card-top">
+                <h3>Kegiatan Lapangan</h3>
+                <button class="link-btn" type="button" data-jump-view="activities">Lihat semua &rarr;</button>
+              </div>
+              <div id="railActivities" class="rail-cards"></div>
+            </article>
+
+            <!-- Tabbed Activity / Expense Feed -->
+            <article class="card feed-card">
+              <div class="card-top">
+                <h3>Transaksi Terbaru</h3>
+                <button class="link-btn" type="button" data-jump-view="expenses">Kelola &rarr;</button>
+              </div>
+              <div class="feed-tabs" role="tablist" aria-label="Filter transaksi">
+                <button class="feed-tab active" type="button" data-feed-cat="">Semua</button>
+                <button class="feed-tab" type="button" data-feed-cat="transportasi">Transport</button>
+                <button class="feed-tab" type="button" data-feed-cat="belanja">Belanja</button>
+                <button class="feed-tab" type="button" data-feed-cat="konsumsi">Konsumsi</button>
+              </div>
+              <div id="railFeed" class="feed-list"></div>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 2: KEGIATAN RISET (/v2/activities) ==================== -->
+      <section id="view-activities" class="view-panel">
+        <div class="dark-strip">
+          <div>
+            <h2>Master Kegiatan Riset Lapangan (<code>/v2/activities</code>)</h2>
+            <p>Dilengkapi kalkulasi realisasi anggaran IDR dan prakiraan cuaca live Open-Meteo per koordinat lokasi.</p>
+          </div>
+          <button id="btnOpenActivityModal" class="btn btn-lime" type="button">+ Tambah Kegiatan (Admin)</button>
+        </div>
+
+        <div class="filter-bar">
+          <div class="pill-filters" role="group" aria-label="Filter status kegiatan">
+            <button class="filter-pill active" type="button" data-act-status="">Semua</button>
+            <button class="filter-pill" type="button" data-act-status="ACTIVE">ACTIVE</button>
+            <button class="filter-pill" type="button" data-act-status="COMPLETED">COMPLETED</button>
+            <button class="filter-pill" type="button" data-act-status="PLANNED">PLANNED</button>
+          </div>
+          <input id="searchActivity" class="search-input" type="search" placeholder="Cari kegiatan atau lokasi...">
+        </div>
+
+        <div id="activitiesList" class="cards-grid"></div>
+      </section>
+
+      <!-- ==================== VIEW 3: PENGELUARAN (/v2/expenses) ==================== -->
+      <section id="view-expenses" class="view-panel">
+        <div class="filter-bar">
+          <div class="filter-controls">
+            <select id="filterExpenseActivity" class="select-pill">
+              <option value="">Semua Kegiatan</option>
+            </select>
+            <select id="filterExpenseCategory" class="select-pill">
+              <option value="">Semua Kategori</option>
+              <option value="akomodasi">akomodasi</option>
+              <option value="transportasi">transportasi</option>
+              <option value="konsumsi">konsumsi</option>
+              <option value="belanja">belanja</option>
+              <option value="hiburan">hiburan</option>
+              <option value="lainnya">lainnya</option>
+            </select>
+            <input id="searchExpense" class="search-input" type="search" placeholder="Cari judul pengeluaran...">
+          </div>
+          <button id="btnOpenExpenseModal" class="btn btn-indigo" type="button">+ Tambah Pengeluaran</button>
+        </div>
+
+        <div class="card table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Pengeluaran &amp; Kegiatan</th>
+                <th>Kategori</th>
+                <th>Nominal Asli</th>
+                <th>Konversi IDR</th>
+                <th>Penginput</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="expensesTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 4: GRAPHQL & AUDIT VERSIONING ==================== -->
+      <section id="view-explorer" class="view-panel">
+        <article class="card">
+          <div class="card-top">
+            <div>
+              <h2>GraphQL Explorer (<code>POST /graphql</code>)</h2>
+              <p class="card-sub">Mengirim <code>x-api-key</code> dan Bearer token sesi aktif secara otomatis.</p>
+            </div>
+            <div class="pill-filters">
+              <button class="filter-pill active" type="button" data-gql-preset="activities">Activities + Weather</button>
+              <button class="filter-pill" type="button" data-gql-preset="expenses">Expenses + Activity</button>
+              <button class="filter-pill" type="button" data-gql-preset="delete">Uji RBAC Mutation</button>
+            </div>
+          </div>
+
+          <div class="split-2">
+            <div class="editor-col">
+              <label class="field-block">
+                <span>Query / Mutation</span>
+                <textarea id="gqlQuery" rows="10" spellcheck="false"></textarea>
+              </label>
+              <label class="field-block">
+                <span>Variables (JSON)</span>
+                <textarea id="gqlVars" rows="3" spellcheck="false">{}</textarea>
+              </label>
+              <button id="btnRunGraphQL" class="btn btn-indigo" type="button">Jalankan GraphQL</button>
+            </div>
+            <div class="output-col">
+              <div class="output-head">
+                <span>Response JSON</span>
+                <span id="gqlStatusBadge" class="pill pill-soft">Siap</span>
+              </div>
+              <pre id="gqlOutput" class="code-box">Klik "Jalankan GraphQL" untuk menguji POST /graphql.</pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="dark-strip compact">
+            <div>
+              <h2>Audit Versioning: <code>GET /v1/expenses</code> vs <code>GET /v2/expenses</code></h2>
+              <p>Verifikasi header RFC 8594 (<code>Sunset</code>, <code>Deprecation</code>, <code>Link</code>) dan breaking change objek <code>cost</code>.</p>
+            </div>
+            <button id="btnRunVersionAudit" class="btn btn-lime" type="button">Jalankan Audit /v1 vs /v2</button>
+          </div>
+
+          <div class="headers-grid">
+            <div class="header-tile"><span>Status /v1</span><strong id="auditV1Status">—</strong></div>
+            <div class="header-tile"><span>Sunset</span><strong id="auditSunset">—</strong></div>
+            <div class="header-tile"><span>Deprecation</span><strong id="auditDeprecation">—</strong></div>
+            <div class="header-tile"><span>Link</span><strong id="auditLink">—</strong></div>
+          </div>
+
+          <div class="split-2">
+            <div>
+              <div class="output-head"><span>Sample <code>GET /v1/expenses</code> (Legacy Flat)</span></div>
+              <pre id="auditV1Body" class="code-box">Belum dijalankan.</pre>
+            </div>
+            <div>
+              <div class="output-head"><span>Sample <code>GET /v2/expenses</code> (Structured Cost + Activity)</span></div>
+              <pre id="auditV2Body" class="code-box">Belum dijalankan.</pre>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ==================== VIEW 5: KEAMANAN & RBAC (V15 ROLES LAYOUT) ==================== -->
+      <section id="view-security" class="view-panel">
+        <div class="roles-layout">
+          <!-- Left: Login Form + Role Cards -->
+          <div class="roles-left">
+            <article class="card">
+              <div class="card-top">
+                <div>
+                  <h2>Login API (<code>POST /v2/auth/login</code>)</h2>
+                  <p class="card-sub">Token HMAC-SHA256 berlaku 2 jam dan disimpan di sesi browser.</p>
+                </div>
+              </div>
+              <div class="quick-row">
+                <button id="btnFillAdmin" class="filter-pill" type="button">Isi Demo Admin</button>
+                <button id="btnFillMhs" class="filter-pill" type="button">Isi Demo Mahasiswa</button>
+              </div>
+              <form id="loginForm" class="stack-form">
+                <label class="field-block">
+                  <span>Username</span>
+                  <input id="loginUsername" name="username" type="text" placeholder="admin / mahasiswa" required>
+                </label>
+                <label class="field-block">
+                  <span>Password</span>
+                  <input id="loginPassword" name="password" type="password" placeholder="••••••••" required>
+                </label>
+                <div class="form-btn-row">
+                  <button class="btn btn-indigo" type="submit">Login &amp; Simpan Token</button>
+                  <button id="btnSecurityLogout" class="btn btn-outline hidden" type="button">Logout</button>
+                </div>
+              </form>
+            </article>
+
+            <div class="role-selector-stack">
+              <button class="role-card selected" type="button" data-inspect-role="admin">
+                <div class="role-card-top">
+                  <strong>Role: Admin</strong>
+                  <span class="pill pill-lime">Akses Penuh</span>
+                </div>
+                <p>Admin Keuangan FT Untad &middot; Penuh pada seluruh endpoint REST &amp; mutation GraphQL.</p>
+              </button>
+              <button class="role-card" type="button" data-inspect-role="mahasiswa">
+                <div class="role-card-top">
+                  <strong>Role: Mahasiswa</strong>
+                  <span class="pill pill-soft">Terbatas (403)</span>
+                </div>
+                <p>Peneliti Mahasiswa &middot; Baca data &amp; tambah/ubah pengeluaran; ditolak hapus &amp; ubah master kegiatan.</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: 2x2 Permission Matrix (V15 Style) -->
+          <div class="roles-right">
+            <article class="card">
+              <div class="card-top">
+                <div>
+                  <h2 id="rbacMatrixTitle">Matriks Izin — Role Admin</h2>
+                  <p class="card-sub">Penegakan status <code>401 Unauthorized</code> dan <code>403 Forbidden</code> oleh <code>src/security.js</code>.</p>
+                </div>
+                <span id="rbacRolePill" class="pill pill-indigo">admin</span>
+              </div>
+              <div id="rbacMatrixGrid" class="perm-grid"></div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL TAMBAH KEGIATAN (ADMIN) -->
+  <dialog id="activityDialog" class="modal">
+    <form id="activityForm" method="dialog" class="modal-body">
+      <div class="modal-head">
+        <h3>Tambah Kegiatan Riset (<code>POST /v2/activities</code>)</h3>
+        <button class="icon-close" type="button" data-close-dialog="activityDialog" aria-label="Tutup">&times;</button>
+      </div>
+      <p class="card-sub">Membutuhkan login role <strong>admin</strong>. Login sebagai <strong>mahasiswa</strong> menghasilkan <code>403 Forbidden</code>.</p>
+      <div id="activityModalErr" class="toast toast-warn hidden" role="alert"></div>
+      <label class="field-block"><span>Judul Kegiatan *</span><input name="title" type="text" required placeholder="Survei Geospasial Teluk Tomini"></label>
+      <label class="field-block"><span>Lokasi *</span><input name="location" type="text" required placeholder="Kabupaten Parigi Moutong, Sulawesi Tengah"></label>
+      <div class="form-row">
+        <label class="field-block"><span>Plafon Anggaran (IDR) *</span><input name="budgetLimitIDR" type="number" min="1" step="1000" required value="10000000"></label>
+        <label class="field-block">
+          <span>Status</span>
+          <select name="status">
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="PLANNED">PLANNED</option>
+            <option value="COMPLETED">COMPLETED</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label class="field-block"><span>Unit / Jurusan</span><input name="unit" type="text" value="Fakultas Teknik Untad"></label>
+        <label class="field-block"><span>Ketua Peneliti</span><input name="leadResearcher" type="text" placeholder="Nama Peneliti"></label>
+      </div>
+      <label class="field-block"><span>Deskripsi</span><textarea name="description" rows="2" placeholder="Ringkasan kegiatan riset lapangan"></textarea></label>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" data-close-dialog="activityDialog">Batal</button>
+        <button class="btn btn-indigo" type="submit">Simpan Kegiatan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- MODAL TAMBAH PENGELUARAN -->
+  <dialog id="expenseDialog" class="modal">
+    <form id="expenseForm" method="dialog" class="modal-body">
+      <div class="modal-head">
+        <h3>Tambah Pengeluaran Riset (<code>POST /v2/expenses</code>)</h3>
+        <button class="icon-close" type="button" data-close-dialog="expenseDialog" aria-label="Tutup">&times;</button>
+      </div>
+      <p class="card-sub">Membutuhkan login (role <strong>admin</strong> atau <strong>mahasiswa</strong>) dan wajib terhubung ke <code>activityId</code>.</p>
+      <div id="expenseModalErr" class="toast toast-err hidden" role="alert"></div>
+      <label class="field-block">
+        <span>Kegiatan Riset (activityId) *</span>
+        <select id="expenseActivitySelect" name="activityId" required></select>
+      </label>
+      <label class="field-block"><span>Judul Pengeluaran *</span><input name="title" type="text" required placeholder="Sewa Perahu Pemantauan Sensor"></label>
+      <div class="form-row">
+        <label class="field-block">
+          <span>Kategori *</span>
+          <select name="category" required>
+            <option value="transportasi">transportasi</option>
+            <option value="akomodasi">akomodasi</option>
+            <option value="konsumsi">konsumsi</option>
+            <option value="belanja">belanja</option>
+            <option value="hiburan">hiburan</option>
+            <option value="lainnya">lainnya</option>
+          </select>
+        </label>
+        <label class="field-block"><span>Tanggal *</span><input name="date" type="date" required value="2026-11-25"></label>
+      </div>
+      <div class="form-row">
+        <label class="field-block"><span>Nominal *</span><input name="amount" type="number" min="0.01" step="any" required placeholder="500000"></label>
+        <label class="field-block">
+          <span>Mata Uang *</span>
+          <select name="currency" required>
+            <option value="IDR">IDR</option>
+            <option value="USD">USD</option>
+            <option value="JPY">JPY</option>
+            <option value="EUR">EUR</option>
+            <option value="SGD">SGD</option>
+            <option value="MYR">MYR</option>
+            <option value="GBP">GBP</option>
+            <option value="AUD">AUD</option>
+          </select>
+        </label>
+      </div>
+      <label class="field-block"><span>Catatan</span><input name="notes" type="text" placeholder="Keterangan tambahan (opsional)"></label>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" data-close-dialog="expenseDialog">Batal</button>
+        <button class="btn btn-indigo" type="submit">Simpan Pengeluaran</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/public/app.js"></script>
+</body>
+</html>
