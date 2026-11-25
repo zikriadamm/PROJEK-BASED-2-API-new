@@ -52,14 +52,23 @@ npm install
 # 3. Buat file .env dari template (JANGAN commit .env)
 Copy-Item .env.example .env   # Windows PowerShell (atau: cp .env.example .env)
 
-# 4. Jalankan server
+# 4. Jalankan server API & Web Dashboard (http://localhost:3000/)
 npm start
 
-# 5. Jalankan test otomatis bawaan Node.js
+# 5. Jalankan Client Console CLI (pada terminal kedua)
+npm run client
+
+# 6. Jalankan seluruh test otomatis bawaan Node.js
 npm test
 ```
 
-Buka `http://localhost:3000/api` untuk melihat status modul (`ACTIVE` vs `FALLBACK`).
+> **Catatan `API_KEY`:** Nilai default di `.env.example`, kolom `x-api-key` pada Web Dashboard (`http://localhost:3000/`), dan variabel `apiKey` di Postman Environment sama-sama menggunakan `ganti-dengan-api-key-anda`. Jika kamu mengubah `API_KEY` di `.env`, samakan pula nilainya di Postman Environment dan kolom `x-api-key` Web Dashboard.
+
+### Pengujian & Dokumentasi API
+- **Web Dashboard:** Buka `http://localhost:3000/` (5 tampilan: Overview Bento, Kegiatan Riset, Pengeluaran, GraphQL & Audit `/v1`, dan Keamanan & RBAC).
+- **Spesifikasi OpenAPI 3.0.3:** Tersedia di [`openapi.yaml`](openapi.yaml) atau `GET http://localhost:3000/openapi.yaml` (siap ditempel ke https://editor.swagger.io/).
+- **Postman Collection Runner:** Impor [`postman/PBL2_Untad_Research_Expense_API.postman_collection.json`](postman/PBL2_Untad_Research_Expense_API.postman_collection.json) dan [`postman/PBL2_Untad_Local.postman_environment.json`](postman/PBL2_Untad_Local.postman_environment.json), pilih environment **PBL2 Untad Local Environment**, lalu jalankan **Run collection** (`15 test case` positif & negatif, otomatis menyimpan token dan idempoten).
+- **Status Server & Modul:** Buka `http://localhost:3000/api`.
 
 ### Akun Demo Bawaan (`data/users.json`)
 | Username | Password | Role | Hak Akses |
