@@ -1,11 +1,12 @@
 (() => {
   const STORAGE_KEY = 'untad_api_session_v2';
 
-  const state = {
-    token: null,
-    user: null,
-    activities: [],
-    expenses: []
+  const VIEW_TITLES = {
+    overview: 'Dashboard Overview',
+    activities: 'Kegiatan Riset Lapangan',
+    expenses: 'Catatan Pengeluaran',
+    explorer: 'GraphQL & Audit Versioning',
+    security: 'Keamanan & Hak Akses (RBAC)'
   };
 
   const GQL_PRESETS = {
@@ -44,6 +45,93 @@
 }`,
       variables: '{"id": 999}'
     }
+  };
+
+  const RBAC_MATRIX = {
+    admin: [
+      {
+        group: 'Activities (/v2/activities)',
+        items: [
+          ['GET daftar & detail', true],
+          ['POST tambah kegiatan', true],
+          ['PUT ubah kegiatan', true],
+          ['DELETE hapus kegiatan', true]
+        ]
+      },
+      {
+        group: 'Expenses (/v2/expenses)',
+        items: [
+          ['GET daftar & summary', true],
+          ['POST catat pengeluaran', true],
+          ['PUT revisi pengeluaran', true],
+          ['DELETE hapus pengeluaran', true]
+        ]
+      },
+      {
+        group: 'GraphQL (POST /graphql)',
+        items: [
+          ['Query activities & expenses', true],
+          ['Mutation createExpense', true],
+          ['Mutation deleteExpense', true]
+        ]
+      },
+      {
+        group: 'Keamanan & Legacy /v1',
+        items: [
+          ['Header x-api-key wajib', true],
+          ['Token HMAC-SHA256 2 jam', true],
+          ['GET /v1/expenses (Sunset)', true]
+        ]
+      }
+    ],
+    mahasiswa: [
+      {
+        group: 'Activities (/v2/activities)',
+        items: [
+          ['GET daftar & detail', true],
+          ['POST tambah kegiatan (403)', false],
+          ['PUT ubah kegiatan (403)', false],
+          ['DELETE hapus kegiatan (403)', false]
+        ]
+      },
+      {
+        group: 'Expenses (/v2/expenses)',
+        items: [
+          ['GET daftar & summary', true],
+          ['POST catat pengeluaran', true],
+          ['PUT revisi pengeluaran', true],
+          ['DELETE hapus pengeluaran (403)', false]
+        ]
+      },
+      {
+        group: 'GraphQL (POST /graphql)',
+        items: [
+          ['Query activities & expenses', true],
+          ['Mutation createExpense', true],
+          ['Mutation deleteExpense (403)', false]
+        ]
+      },
+      {
+        group: 'Keamanan & Legacy /v1',
+        items: [
+          ['Header x-api-key wajib', true],
+          ['Token HMAC-SHA256 2 jam', true],
+          ['GET /v1/expenses (Sunset)', true]
+        ]
+      }
+    ]
+  };
+
+  const state = {
+    token: null,
+    user: null,
+    activities: [],
+    expenses: [],
+    summary: null,
+    actStatusFilter: '',
+    feedCategory: '',
+    fulfillScope: 'ALL',
+    inspectedRole: 'admin'
   };
 
   const $ = (id) => document.getElementById(id);
@@ -87,6 +175,21 @@
     return { ok: res.ok, status: res.status, headers: res.headers, data };
   }
 
+  function switchView(viewName) {
+    if (!VIEW_TITLES[viewName]) return;
+    $('viewTitle').textContent = VIEW_TITLES[viewName];
+
+    document.querySelectorAll('.rail-btn[data-view]').forEach((btn) => {
+      const active = btn.dataset.view === viewName;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', String(active));
+    });
+
+    document.querySelectorAll('.view-panel').forEach((panel) => {
+      panel.classList.toggle('active', panel.id === `view-${viewName}`);
+    });
+  }
+
   function saveSession() {
     if (state.token && state.user) {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ token: state.token, user: state.user }));
@@ -109,80 +212,192 @@
 
   function renderSession() {
     const badge = $('sessionBadge');
+    const railAvatar = $('railAvatar');
     const logoutBtn = $('btnLogout');
+    const secLogout = $('btnSecurityLogout');
+
     if (state.user && state.token) {
-      const roleClass = state.user.role === 'admin' ? 'session-admin' : 'session-mahasiswa';
-      badge.className = `session-badge ${roleClass}`;
-      badge.textContent = `${state.user.username} (${state.user.role})`;
+      const role = state.user.role === 'admin' ? 'admin' : 'mahasiswa';
+      badge.className = `session-pill session-${role}`;
+      badge.textContent = `${state.user.username} (${role})`;
+      railAvatar.className = `rail-avatar ${role}`;
+      railAvatar.textContent = state.user.username.slice(0, 2).toUpperCase();
+      railAvatar.title = `${state.user.fullName} (${role})`;
       logoutBtn.classList.remove('hidden');
+      secLogout.classList.remove('hidden');
+      renderRbacMatrix(role);
     } else {
-      badge.className = 'session-badge session-guest';
+      badge.className = 'session-pill session-guest';
       badge.textContent = 'Belum Login';
+      railAvatar.className = 'rail-avatar guest';
+      railAvatar.textContent = 'G';
+      railAvatar.title = 'Belum Login';
       logoutBtn.classList.add('hidden');
+      secLogout.classList.add('hidden');
     }
+  }
+
+  function renderCategoryChart(rekapPerKategori = {}) {
+    const container = $('categoryChart');
+    const entries = Object.entries(rekapPerKategori);
+    if (!entries.length) {
+      container.innerHTML = '<span class="card-sub">Belum ada data kategori.</span>';
+      return;
+    }
+
+    const maxVal = Math.max(...entries.map(([, v]) => Number(v.totalIDR) || 0), 1);
+    $('kpiCatCount').textContent = `${entries.length} Kat`;
+
+    container.innerHTML = entries
+      .map(([cat, info]) => {
+        const val = Number(info.totalIDR) || 0;
+        const heightPct = Math.max(12, Math.round((val / maxVal) * 100));
+        return `
+          <div class="bar-col" title="${escapeHtml(cat)}: ${escapeHtml(info.formattedIDR || '')} (${escapeHtml(info.count)} item)">
+            <div class="bar-stick" style="height:${heightPct}%"></div>
+            <span class="bar-lbl">${escapeHtml(cat.slice(0, 4))}</span>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  function renderFulfillmentCard() {
+    const acts =
+      state.fulfillScope === 'ACTIVE'
+        ? state.activities.filter((a) => String(a.status).toUpperCase() === 'ACTIVE')
+        : state.activities;
+
+    const totalPlafon = acts.reduce((s, a) => s + (Number(a.budgetLimitIDR) || 0), 0);
+    const totalSpent = acts.reduce((s, a) => s + (Number(a.financialSummary?.totalSpentIDR) || 0), 0);
+    const totalTx = acts.reduce((s, a) => s + (Number(a.expenseCount) || 0), 0);
+    const pct = totalPlafon > 0 ? Number(((totalSpent / totalPlafon) * 100).toFixed(1)) : 0;
+
+    $('fulfillActivities').textContent = String(acts.length);
+    $('fulfillExpenses').textContent = String(totalTx);
+    $('fulfillPct').textContent = `${pct}%`;
+
+    const totalTicks = 32;
+    const filledTicks = Math.min(totalTicks, Math.max(pct > 0 ? 1 : 0, Math.round((pct / 100) * totalTicks)));
+    const barHtml = Array.from({ length: totalTicks }, (_, idx) => {
+      if (idx < filledTicks) {
+        return `<span class="tick ${idx >= totalTicks - 6 ? 'filled-hi' : 'filled'}"></span>`;
+      }
+      return '<span class="tick"></span>';
+    }).join('');
+    $('barcodeBar').innerHTML = barHtml;
+
+    const statusText = pct > 100 ? 'MELEBIHI BATAS' : pct >= 80 ? 'WASPADA' : 'AMAN';
+    $('fulfillBudgetLabel').textContent = `Status: ${statusText} (Rp ${totalSpent.toLocaleString('id-ID')})`;
   }
 
   async function loadSummary() {
     const res = await apiRequest('/v2/expenses/summary');
     if (!res.ok || !res.data) {
       $('kpiSpent').textContent = `Error ${res.status}`;
-      $('kpiPlafon').textContent = res.data?.error || 'Gagal memuat ringkasan.';
+      $('kpiPlafon').textContent = res.data?.error || 'Periksa x-api-key.';
       return;
     }
 
+    state.summary = res.data;
     const r = res.data.ringkasanUmum || {};
     const w = res.data.cuacaAcuanUntad || {};
     const k = res.data.sumberKurs || {};
 
+    const spent = Number(r.totalPengeluaranIDR) || 0;
+    const plafon = Number(r.totalPlafonIDR) || 0;
+    const pct = plafon > 0 ? Number(((spent / plafon) * 100).toFixed(1)) : 0;
+
     $('kpiSpent').textContent = r.totalPengeluaranFormatted || 'Rp 0';
     $('kpiPlafon').textContent = `Plafon: ${r.totalPlafonFormatted || 'Rp 0'}`;
     $('kpiRemaining').textContent = r.sisaAnggaranTotalFormatted || 'Rp 0';
-    $('kpiCounts').textContent = `${r.totalKegiatan ?? 0} kegiatan · ${r.totalCatatanPengeluaran ?? 0} pengeluaran`;
+    $('kpiUtilBadge').textContent = `${pct}%`;
+    $('kpiProgressFill').style.width = `${Math.min(100, pct)}%`;
 
     const temp = w.temperatureFormatted || (w.temperature !== undefined ? `${w.temperature}°C` : '—');
     $('kpiWeather').textContent = `${temp} · ${w.condition || '—'}`;
-    $('kpiWeatherMeta').textContent = `${w.lokasi || 'Untad Palu'} (${w.status || w.sumber || '—'})`;
-
-    $('kpiRateStatus').textContent = k.status || '—';
+    $('kpiWeatherMeta').textContent = `${w.lokasi || 'Kampus Untad Tondo, Palu'} (${w.status || w.sumber || '—'})`;
+    $('kpiRateStatus').textContent = k.status || 'ONLINE';
     $('kpiRateSource').textContent = `${k.provider || 'ExchangeRate-API'} (${k.sumber || '—'})`;
+
+    renderCategoryChart(res.data.rekapPerKategori);
   }
 
-  function renderActivities() {
-    const wrap = $('activitiesList');
+  function renderRailActivities() {
+    const wrap = $('railActivities');
     if (!state.activities.length) {
-      wrap.innerHTML = '<div class="card muted">Belum ada data kegiatan untuk filter ini.</div>';
+      wrap.innerHTML = '<div class="card-sub">Belum ada kegiatan riset.</div>';
       return;
     }
 
     wrap.innerHTML = state.activities
+      .slice(0, 3)
+      .map((act) => {
+        const fin = act.financialSummary || {};
+        const w = act.currentWeather || {};
+        const temp = w.temperatureFormatted || (w.temperature !== undefined ? `${w.temperature}°C` : '—');
+        const bStatus = fin.budgetStatus || 'AMAN';
+        const pillCls = bStatus === 'MELEBIHI_BATAS' ? 'pill-coral' : bStatus === 'WASPADA' ? 'pill-amber' : 'pill-emerald';
+        return `
+          <div class="rail-act-tile" data-jump-view="activities">
+            <div class="rail-act-top">
+              <strong>${escapeHtml(act.title)}</strong>
+              <span class="pill ${pillCls}">${escapeHtml(bStatus)}</span>
+            </div>
+            <div class="rail-act-meta">
+              <span>${escapeHtml(act.location)}</span>
+              <span>${escapeHtml(temp)} &middot; ${escapeHtml(fin.utilizationPercent ?? 0)}%</span>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  function renderActivitiesView() {
+    const wrap = $('activitiesList');
+    const q = ($('searchActivity')?.value || '').trim().toLowerCase();
+    const list = state.activities.filter((act) => {
+      if (state.actStatusFilter && String(act.status).toUpperCase() !== state.actStatusFilter) return false;
+      if (q && !`${act.title} ${act.location} ${act.leadResearcher}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    if (!list.length) {
+      wrap.innerHTML = '<div class="card card-sub">Tidak ada kegiatan riset yang cocok dengan filter.</div>';
+      return;
+    }
+
+    wrap.innerHTML = list
       .map((act) => {
         const fin = act.financialSummary || {};
         const pct = Math.min(100, Math.max(0, Number(fin.utilizationPercent) || 0));
         const bStatus = fin.budgetStatus || 'AMAN';
-        const statusCls = bStatus === 'MELEBIHI_BATAS' ? 'danger' : bStatus === 'WASPADA' ? 'warn' : 'ok';
+        const pillCls = bStatus === 'MELEBIHI_BATAS' ? 'pill-coral' : bStatus === 'WASPADA' ? 'pill-amber' : 'pill-emerald';
+        const fillCls = bStatus === 'MELEBIHI_BATAS' ? 'danger' : bStatus === 'WASPADA' ? 'warn' : '';
         const w = act.currentWeather || {};
         const temp = w.temperatureFormatted || (w.temperature !== undefined ? `${w.temperature}°C` : '—');
 
         return `
           <article class="card activity-card">
-            <div class="activity-top">
+            <div class="card-top" style="margin-bottom:0">
               <div>
                 <h3>#${escapeHtml(act.id)} ${escapeHtml(act.title)}</h3>
                 <div class="meta-line">${escapeHtml(act.location)} &middot; ${escapeHtml(act.unit || 'FT Untad')}</div>
               </div>
-              <span class="badge badge-${statusCls}">${escapeHtml(bStatus)}</span>
+              <span class="pill ${pillCls}">${escapeHtml(bStatus)}</span>
             </div>
-            <div class="meta-line">Ketua: <strong>${escapeHtml(act.leadResearcher || '-')}</strong> &middot; Status: <strong>${escapeHtml(act.status || 'ACTIVE')}</strong></div>
+            <div class="meta-line">Ketua: <strong>${escapeHtml(act.leadResearcher || '-')}</strong> &middot; <span class="pill pill-soft">${escapeHtml(act.status || 'ACTIVE')}</span></div>
             <div>
-              <div class="meta-line" style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <span>Realisasi: ${escapeHtml(fin.totalExpensesFormatted || 'Rp ' + (fin.totalSpentIDR || 0).toLocaleString('id-ID'))}</span>
-                <span>${escapeHtml(fin.utilizationPercent ?? 0)}% dari ${escapeHtml(fin.budgetLimitFormatted || 'Rp ' + (act.budgetLimitIDR || 0).toLocaleString('id-ID'))}</span>
+              <div class="meta-line" style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span>${escapeHtml(fin.totalExpensesFormatted || 'Rp ' + (fin.totalSpentIDR || 0).toLocaleString('id-ID'))}</span>
+                <strong>${escapeHtml(fin.utilizationPercent ?? 0)}% / ${escapeHtml(fin.budgetLimitFormatted || 'Rp ' + (act.budgetLimitIDR || 0).toLocaleString('id-ID'))}</strong>
               </div>
-              <div class="progress-track"><div class="progress-fill ${statusCls}" style="width:${pct}%"></div></div>
+              <div class="progress-track"><div class="progress-fill ${fillCls}" style="width:${pct}%"></div></div>
             </div>
             <div class="weather-strip">
               <span>Cuaca: <strong>${escapeHtml(temp)}</strong> (${escapeHtml(w.condition || '—')})</span>
-              <span>${escapeHtml(act.expenseCount ?? 0)} transaksi</span>
+              <span class="pill pill-indigo">${escapeHtml(act.expenseCount ?? 0)} transaksi</span>
             </div>
           </article>
         `;
@@ -205,67 +420,125 @@
   }
 
   async function loadActivities() {
-    const status = $('filterActivityStatus').value;
-    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
-    const res = await apiRequest(`/v2/activities${qs}`);
+    const res = await apiRequest('/v2/activities');
     if (!res.ok) {
       $('activitiesList').innerHTML = `<div class="card toast-err">Error ${res.status}: ${escapeHtml(res.data?.error || 'Gagal memuat kegiatan.')}</div>`;
       return;
     }
     state.activities = res.data.data || [];
-    renderActivities();
-    if (!status) {
-      populateActivitySelects(state.activities);
-    }
+    populateActivitySelects(state.activities);
+    renderActivitiesView();
+    renderRailActivities();
+    renderFulfillmentCard();
   }
 
-  function renderExpenses() {
-    const tbody = $('expensesTableBody');
-    if (!state.expenses.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="muted">Tidak ada catatan pengeluaran untuk filter ini.</td></tr>';
+  function renderRailFeed() {
+    const wrap = $('railFeed');
+    const items = state.expenses
+      .filter((e) => !state.feedCategory || String(e.category).toLowerCase() === state.feedCategory)
+      .slice(-5)
+      .reverse();
+
+    if (!items.length) {
+      wrap.innerHTML = '<div class="card-sub">Tidak ada transaksi pada kategori ini.</div>';
       return;
     }
 
-    tbody.innerHTML = state.expenses
-      .map((exp) => {
-        const cost = exp.cost || {};
-        const act = exp.activity || {};
-        return `
-          <tr>
-            <td class="num">${escapeHtml(exp.date)}</td>
-            <td>
-              <strong>#${escapeHtml(exp.id)} ${escapeHtml(exp.title)}</strong>
-              <div class="meta-line">${escapeHtml(act.title || `Activity #${exp.activityId}`)}</div>
-              ${exp.notes ? `<div class="meta-line">${escapeHtml(exp.notes)}</div>` : ''}
-            </td>
-            <td><span class="badge">${escapeHtml(exp.category)}</span></td>
-            <td class="num">${escapeHtml(Number(exp.amount).toLocaleString('id-ID'))} ${escapeHtml(exp.currency)}</td>
-            <td class="num"><strong>${escapeHtml(cost.formattedIDR || '—')}</strong></td>
-            <td>${escapeHtml(exp.submittedBy || '-')}</td>
-            <td>
-              <button class="btn btn-sm btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
-            </td>
-          </tr>
-        `;
-      })
+    wrap.innerHTML = items
+      .map((exp) => `
+        <div class="feed-item">
+          <div class="feed-left">
+            <span class="feed-icon">${escapeHtml((exp.category || 'TX').slice(0, 2))}</span>
+            <div class="feed-text">
+              <strong>${escapeHtml(exp.title)}</strong>
+              <small>${escapeHtml(exp.date)} &middot; ${escapeHtml(exp.submittedBy || '-')}</small>
+            </div>
+          </div>
+          <span class="feed-amount">${escapeHtml(exp.cost?.formattedIDR || '—')}</span>
+        </div>
+      `)
+      .join('');
+  }
+
+  function renderExpensesTable() {
+    const tbody = $('expensesTableBody');
+    const q = ($('searchExpense')?.value || '').trim().toLowerCase();
+    const actId = $('filterExpenseActivity').value;
+    const cat = $('filterExpenseCategory').value;
+
+    const filtered = state.expenses.filter((exp) => {
+      if (actId && String(exp.activityId) !== String(actId)) return false;
+      if (cat && String(exp.category).toLowerCase() !== cat.toLowerCase()) return false;
+      if (q && !`${exp.title} ${exp.notes} ${exp.submittedBy}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="card-sub">Tidak ada pengeluaran yang cocok dengan filter.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered
+      .map((exp) => `
+        <tr>
+          <td class="num">${escapeHtml(exp.date)}</td>
+          <td>
+            <strong>#${escapeHtml(exp.id)} ${escapeHtml(exp.title)}</strong>
+            <div class="meta-line">${escapeHtml(exp.activity?.title || `Activity #${exp.activityId}`)}</div>
+            ${exp.notes ? `<div class="meta-line">${escapeHtml(exp.notes)}</div>` : ''}
+          </td>
+          <td><span class="pill pill-indigo">${escapeHtml(exp.category)}</span></td>
+          <td class="num">${escapeHtml(Number(exp.amount).toLocaleString('id-ID'))} ${escapeHtml(exp.currency)}</td>
+          <td class="num"><strong>${escapeHtml(exp.cost?.formattedIDR || '—')}</strong></td>
+          <td>${escapeHtml(exp.submittedBy || '-')}</td>
+          <td>
+            <button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
+          </td>
+        </tr>
+      `)
       .join('');
   }
 
   async function loadExpenses() {
-    const params = new URLSearchParams();
-    const actId = $('filterExpenseActivity').value;
-    const cat = $('filterExpenseCategory').value;
-    if (actId) params.set('activityId', actId);
-    if (cat) params.set('category', cat);
-
-    const qs = params.toString() ? `?${params.toString()}` : '';
-    const res = await apiRequest(`/v2/expenses${qs}`);
+    const res = await apiRequest('/v2/expenses');
     if (!res.ok) {
       $('expensesTableBody').innerHTML = `<tr><td colspan="7" class="toast-err">Error ${res.status}: ${escapeHtml(res.data?.error || 'Gagal memuat pengeluaran.')}</td></tr>`;
       return;
     }
     state.expenses = res.data.data || [];
-    renderExpenses();
+    renderExpensesTable();
+    renderRailFeed();
+  }
+
+  function renderRbacMatrix(role) {
+    state.inspectedRole = role;
+    $('rbacMatrixTitle').textContent = `Matriks Izin — Role ${role === 'admin' ? 'Admin' : 'Mahasiswa'}`;
+    $('rbacRolePill').textContent = role;
+
+    document.querySelectorAll('.role-card').forEach((card) => {
+      card.classList.toggle('selected', card.dataset.inspectRole === role);
+    });
+
+    const groups = RBAC_MATRIX[role] || RBAC_MATRIX.admin;
+    $('rbacMatrixGrid').innerHTML = groups
+      .map(
+        (g) => `
+        <div class="perm-card">
+          <h4>${escapeHtml(g.group)}</h4>
+          ${g.items
+            .map(
+              ([label, allowed]) => `
+            <div class="perm-row">
+              <span>${escapeHtml(label)}</span>
+              <span class="switch ${allowed ? 'on' : ''}" aria-label="${allowed ? 'Diizinkan' : 'Ditolak'}"></span>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `
+      )
+      .join('');
   }
 
   async function refreshAll() {
@@ -361,10 +634,7 @@
     $('expenseModalErr').classList.add('hidden');
     $('expenseDialog').close();
     e.target.reset();
-    showToast(
-      `Pengeluaran #${res.data.data.id} disimpan (${res.data.data.cost?.formattedIDR || ''}).`,
-      'ok'
-    );
+    showToast(`Pengeluaran #${res.data.data.id} disimpan (${res.data.data.cost?.formattedIDR || ''}).`, 'ok');
     await refreshAll();
   }
 
@@ -404,7 +674,7 @@
 
     const badge = $('gqlStatusBadge');
     badge.textContent = `HTTP ${res.status}`;
-    badge.className = `badge ${res.ok ? 'badge-ok' : res.status === 403 ? 'badge-warn' : 'badge-danger'}`;
+    badge.className = `pill ${res.ok ? 'pill-emerald' : res.status === 403 ? 'pill-amber' : 'pill-coral'}`;
     $('gqlOutput').textContent = JSON.stringify(res.data, null, 2);
   }
 
@@ -414,8 +684,7 @@
       apiRequest('/v2/expenses')
     ]);
 
-    $('auditV1Status').textContent =
-      v1Res.status === 501 ? '501 (Menunggu Issue #3)' : `HTTP ${v1Res.status}`;
+    $('auditV1Status').textContent = v1Res.status === 501 ? '501 (Menunggu Issue #3)' : `HTTP ${v1Res.status}`;
     $('auditSunset').textContent = v1Res.headers.get('Sunset') || '(belum ada)';
     $('auditDeprecation').textContent = v1Res.headers.get('Deprecation') || '(belum ada)';
     $('auditLink').textContent = v1Res.headers.get('Link') || '(belum ada)';
@@ -429,36 +698,58 @@
   }
 
   function wireEvents() {
-    $('btnFillAdmin').addEventListener('click', () => {
-      $('loginUsername').value = 'admin';
-      $('loginPassword').value = 'admin123';
-    });
-    $('btnFillMhs').addEventListener('click', () => {
-      $('loginUsername').value = 'mahasiswa';
-      $('loginPassword').value = 'mhs123';
+    document.querySelectorAll('.rail-btn[data-view]').forEach((btn) => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
 
-    $('loginForm').addEventListener('submit', handleLogin);
-    $('btnLogout').addEventListener('click', handleLogout);
-    $('btnRefreshAll').addEventListener('click', refreshAll);
+    document.body.addEventListener('click', (e) => {
+      const jumper = e.target.closest('[data-jump-view]');
+      if (jumper) switchView(jumper.dataset.jumpView);
+    });
 
-    document.querySelectorAll('.tab').forEach((btn) => {
+    $('railRefreshBtn').addEventListener('click', async () => {
+      await refreshAll();
+      showToast('Data dashboard diperbarui dari API.', 'ok');
+    });
+
+    $('btnHeroAddExpense').addEventListener('click', () => {
+      $('expenseModalErr').classList.add('hidden');
+      $('expenseDialog').showModal();
+    });
+
+    $('btnQuickAudit').addEventListener('click', async () => {
+      switchView('explorer');
+      await handleRunVersionAudit();
+    });
+
+    document.querySelectorAll('[data-fulfill-scope]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const target = btn.dataset.tab;
-        document.querySelectorAll('.tab').forEach((t) => {
-          const active = t === btn;
-          t.classList.toggle('active', active);
-          t.setAttribute('aria-selected', String(active));
-        });
-        document.querySelectorAll('.tab-panel').forEach((p) => {
-          p.classList.toggle('active', p.id === `tab-${target}`);
-        });
+        state.fulfillScope = btn.dataset.fulfillScope;
+        document.querySelectorAll('[data-fulfill-scope]').forEach((b) => b.classList.toggle('active', b === btn));
+        renderFulfillmentCard();
       });
     });
 
-    $('filterActivityStatus').addEventListener('change', loadActivities);
-    $('filterExpenseActivity').addEventListener('change', loadExpenses);
-    $('filterExpenseCategory').addEventListener('change', loadExpenses);
+    document.querySelectorAll('[data-feed-cat]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.feedCategory = btn.dataset.feedCat;
+        document.querySelectorAll('[data-feed-cat]').forEach((b) => b.classList.toggle('active', b === btn));
+        renderRailFeed();
+      });
+    });
+
+    document.querySelectorAll('[data-act-status]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.actStatusFilter = btn.dataset.actStatus;
+        document.querySelectorAll('[data-act-status]').forEach((b) => b.classList.toggle('active', b === btn));
+        renderActivitiesView();
+      });
+    });
+
+    $('searchActivity').addEventListener('input', renderActivitiesView);
+    $('filterExpenseActivity').addEventListener('change', renderExpensesTable);
+    $('filterExpenseCategory').addEventListener('change', renderExpensesTable);
+    $('searchExpense').addEventListener('input', renderExpensesTable);
 
     $('btnOpenActivityModal').addEventListener('click', () => {
       $('activityModalErr').classList.add('hidden');
@@ -484,6 +775,7 @@
       btn.addEventListener('click', () => {
         const preset = GQL_PRESETS[btn.dataset.gqlPreset];
         if (preset) {
+          document.querySelectorAll('[data-gql-preset]').forEach((b) => b.classList.toggle('active', b === btn));
           $('gqlQuery').value = preset.query;
           $('gqlVars').value = preset.variables;
         }
@@ -492,11 +784,29 @@
 
     $('btnRunGraphQL').addEventListener('click', handleRunGraphQL);
     $('btnRunVersionAudit').addEventListener('click', handleRunVersionAudit);
+
+    $('btnFillAdmin').addEventListener('click', () => {
+      $('loginUsername').value = 'admin';
+      $('loginPassword').value = 'admin123';
+    });
+    $('btnFillMhs').addEventListener('click', () => {
+      $('loginUsername').value = 'mahasiswa';
+      $('loginPassword').value = 'mhs123';
+    });
+
+    $('loginForm').addEventListener('submit', handleLogin);
+    $('btnLogout').addEventListener('click', handleLogout);
+    $('btnSecurityLogout').addEventListener('click', handleLogout);
+
+    document.querySelectorAll('.role-card').forEach((card) => {
+      card.addEventListener('click', () => renderRbacMatrix(card.dataset.inspectRole));
+    });
   }
 
   // Bootstrap
   restoreSession();
   renderSession();
+  renderRbacMatrix(state.user?.role === 'mahasiswa' ? 'mahasiswa' : 'admin');
   wireEvents();
   $('gqlQuery').value = GQL_PRESETS.activities.query;
   $('gqlVars').value = GQL_PRESETS.activities.variables;
