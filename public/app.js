@@ -801,9 +801,18 @@
     document.querySelectorAll('.role-card').forEach((card) => {
       card.addEventListener('click', () => renderRbacMatrix(card.dataset.inspectRole));
     });
+
+    $('apiKeyInput').addEventListener('change', async () => {
+      const val = getApiKey();
+      if (val) sessionStorage.setItem('untad_api_key_v2', val);
+      else sessionStorage.removeItem('untad_api_key_v2');
+      await refreshAll();
+    });
   }
 
   // Bootstrap
+  const savedApiKey = sessionStorage.getItem('untad_api_key_v2');
+  if (savedApiKey) $('apiKeyInput').value = savedApiKey;
   restoreSession();
   renderSession();
   renderRbacMatrix(state.user?.role === 'mahasiswa' ? 'mahasiswa' : 'admin');
