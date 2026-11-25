@@ -33,6 +33,7 @@ describe('Issue #2 — Unit Test Public APIs & Fallback (src/publicApis.js)', ()
   });
 
   it('beralih mulus ke cache_fallback saat fetch gagal/timeout (simulasi offline)', async () => {
+    publicApis.clearCache();
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async () => {
       throw new Error('Simulasi jaringan putus / timeout');
@@ -50,6 +51,7 @@ describe('Issue #2 — Unit Test Public APIs & Fallback (src/publicApis.js)', ()
       assert.equal(typeof weatherFallback.temperature, 'number');
     } finally {
       globalThis.fetch = originalFetch;
+      publicApis.clearCache();
     }
   });
 });

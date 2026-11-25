@@ -12,10 +12,17 @@ const FALLBACK_RATES = {
   AUD: 1.52
 };
 
-// In-memory cache fallback
+// In-memory cache dengan TTL 5 menit agar tidak memukul API eksternal di setiap request
+const CACHE_TTL_MS = 5 * 60 * 1000;
 let cachedRates = { ...FALLBACK_RATES };
 let lastRatesUpdated = null;
+let lastRatesFetchedAt = 0;
 const cachedWeatherByCoord = new Map();
+
+function clearCache() {
+  lastRatesFetchedAt = 0;
+  cachedWeatherByCoord.clear();
+}
 
 function terjemahkanKodeWmo(kode) {
   const kamus = {
@@ -45,6 +52,15 @@ function terjemahkanKodeWmo(kode) {
  * Timeout 4 detik dengan in-memory cache fallback jika gagal/offline
  */
 async function getLiveRates() {
+  if (lastRatesFetchedAt && Date.now() - lastRatesFetchedAt < CACHE_TTL_MS) {
+    return {
+      rates: cachedRates,
+      sumber: 'live_public_api',
+      status: 'ONLINE',
+      terakhirDiperbarui: lastRatesUpdated
+    };
+  }
+
   try {
     const res = await fetch('https://open.er-api.com/v6/latest/USD', {
       signal: AbortSignal.timeout(4000)
@@ -61,6 +77,7 @@ async function getLiveRates() {
 
     cachedRates = { ...FALLBACK_RATES, ...data.rates };
     lastRatesUpdated = new Date().toISOString();
+    lastRatesFetchedAt = Date.now();
 
     return {
       rates: cachedRates,
@@ -120,6 +137,11 @@ async function getWeatherForecast(lat = -0.836, lon = 119.893) {
   const longitude =
     lon !== undefined && lon !== null && !Number.isNaN(Number(lon)) ? Number(lon) : 119.893;
   const coordKey = `${latitude},${longitude}`;
+  const cachedEntry = cachedWeatherByCoord.get(coordKey);
+  if (cachedEntry && Date.now() - cachedEntry.fetchedAt < CACHE_TTL_MS) {
+    return cachedEntry.data;
+  }
+
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
 
   try {
@@ -151,13 +173,12 @@ async function getWeatherForecast(lat = -0.836, lon = 119.893) {
       waktuAmbil: new Date().toISOString()
     };
 
-    cachedWeatherByCoord.set(coordKey, hasil);
+    cachedWeatherByCoord.set(coordKey, { data: hasil, fetchedAt: Date.now() });
     return hasil;
   } catch (err) {
-    const cached = cachedWeatherByCoord.get(coordKey);
-    if (cached) {
+    if (cachedEntry) {
       return {
-        ...cached,
+        ...cachedEntry.data,
         sumber: 'cache_fallback',
         status: 'OFFLINE_CACHE'
       };
@@ -182,5 +203,6 @@ async function getWeatherForecast(lat = -0.836, lon = 119.893) {
 module.exports = {
   getLiveRates,
   konversiKeIDR,
-  getWeatherForecast
+  getWeatherForecast,
+  clearCache
 };
