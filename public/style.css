@@ -68,36 +68,36 @@ code, pre { font-family: var(--font-mono); }
 }
 
 .orb-1 {
-  width: 520px;
-  height: 520px;
-  top: -120px;
-  left: -60px;
+  width: 44vw;
+  height: 44vw;
+  top: -12vh;
+  left: -6vw;
   background: radial-gradient(circle, rgba(99, 102, 241, 0.62) 0%, rgba(99, 102, 241, 0) 70%);
 }
 
 .orb-2 {
-  width: 480px;
-  height: 480px;
-  top: 10%;
-  right: -80px;
+  width: 42vw;
+  height: 42vw;
+  top: 6vh;
+  right: -8vw;
   background: radial-gradient(circle, rgba(56, 189, 248, 0.56) 0%, rgba(56, 189, 248, 0) 70%);
   animation-delay: -5s;
 }
 
 .orb-3 {
-  width: 540px;
-  height: 540px;
-  bottom: -140px;
-  left: 32%;
+  width: 46vw;
+  height: 46vw;
+  bottom: -16vh;
+  left: 28vw;
   background: radial-gradient(circle, rgba(168, 85, 247, 0.48) 0%, rgba(168, 85, 247, 0) 70%);
   animation-delay: -10s;
 }
 
 .orb-4 {
-  width: 360px;
-  height: 360px;
-  bottom: 8%;
-  right: 14%;
+  width: 32vw;
+  height: 32vw;
+  bottom: 4vh;
+  right: 8vw;
   background: radial-gradient(circle, rgba(190, 242, 100, 0.55) 0%, rgba(190, 242, 100, 0) 70%);
   animation-delay: -14s;
 }
@@ -113,9 +113,10 @@ code, pre { font-family: var(--font-mono); }
   display: grid;
   grid-template-columns: 74px minmax(0, 1fr);
   gap: 20px;
-  max-width: 1420px;
-  margin: 0 auto;
-  padding: 18px 22px 36px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 16px 24px 24px;
   min-height: 100vh;
 }
 
@@ -467,12 +468,13 @@ code, pre { font-family: var(--font-mono); }
 .pill-lime { background: var(--lime); color: var(--dark); }
 .pill-dark-ok { background: rgba(16, 185, 129, 0.22); border: 1px solid rgba(110, 231, 183, 0.35); color: #6ee7b7; }
 
-/* ---------- Overview Bento Grid (65% / 35%) ---------- */
+/* ---------- Overview Bento Grid (Full-Width Widescreen) ---------- */
 .bento-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.85fr) minmax(305px, 1fr);
+  grid-template-columns: minmax(0, 2.05fr) minmax(350px, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
+  flex: 1;
 }
 
 .bento-main, .bento-rail {
@@ -480,6 +482,12 @@ code, pre { font-family: var(--font-mono); }
   flex-direction: column;
   gap: 18px;
   min-width: 0;
+}
+
+.feed-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Smoked Glass Hero Banner with Internal Iridescent Glow */
@@ -700,6 +708,13 @@ code, pre { font-family: var(--font-mono); }
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 16px;
+  flex: 1;
+}
+
+.fulfillment-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .seg-toggle {
