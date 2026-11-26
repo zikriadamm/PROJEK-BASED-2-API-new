@@ -6,7 +6,7 @@
   --glass-border: rgba(255, 255, 255, 0.78);
   --glass-shadow: 0 12px 38px rgba(31, 25, 86, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(255, 255, 255, 0.35);
 
-  --dark-glass: linear-gradient(145deg, rgba(23, 19, 58, 0.84) 0%, rgba(40, 31, 102, 0.76) 100%);
+  --dark-glass: linear-gradient(145deg, rgba(23, 19, 58, 0.94) 0%, rgba(40, 31, 102, 0.9) 100%);
   --dark-border: rgba(255, 255, 255, 0.18);
   --dark-shadow: 0 20px 50px rgba(18, 14, 52, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.25);
 
@@ -1083,9 +1083,9 @@ code, pre { font-family: var(--font-mono); }
 .hero-banner {
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at 86% 12%, rgba(129, 140, 248, 0.45), transparent 46%),
-              radial-gradient(circle at 12% 94%, rgba(56, 189, 248, 0.24), transparent 44%),
-              var(--dark-glass);
+  background: radial-gradient(circle at 86% 12%, rgba(99, 102, 241, 0.28), transparent 46%),
+              var(--dark-glass),
+              #171436;
   backdrop-filter: blur(26px) saturate(180%);
   -webkit-backdrop-filter: blur(26px) saturate(180%);
   border: 1px solid var(--dark-border);
@@ -1390,8 +1390,9 @@ code, pre { font-family: var(--font-mono); }
 }
 
 .dark-card {
-  background: radial-gradient(circle at 90% 10%, rgba(56, 189, 248, 0.3), transparent 52%),
-              var(--dark-glass);
+  background: radial-gradient(circle at 90% 10%, rgba(56, 189, 248, 0.18), transparent 52%),
+              var(--dark-glass),
+              #171436;
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--dark-border);
@@ -1589,8 +1590,9 @@ code, pre { font-family: var(--font-mono); }
 
 /* ---------- Secondary Views ---------- */
 .dark-strip {
-  background: radial-gradient(circle at 85% 20%, rgba(129, 140, 248, 0.34), transparent 45%),
-              var(--dark-glass);
+  background: radial-gradient(circle at 85% 20%, rgba(99, 102, 241, 0.24), transparent 45%),
+              var(--dark-glass),
+              #171436;
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--dark-border);
