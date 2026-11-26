@@ -451,9 +451,9 @@ code, pre { font-family: var(--font-mono); }
   top: 50%;
   padding: 7px 12px;
   border-radius: 11px;
-  background: rgba(18, 17, 50, 0.94);
+  background: rgba(24, 21, 23, 0.94);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #ffffff;
   font-size: 0.75rem;
   font-weight: 600;
@@ -462,7 +462,7 @@ code, pre { font-family: var(--font-mono); }
   pointer-events: none;
   transform: translate(-6px, -50%);
   transition: opacity 0.16s ease, transform 0.16s ease;
-  box-shadow: 0 12px 26px rgba(10, 10, 34, 0.32);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
   z-index: 60;
 }
 
@@ -1411,7 +1411,7 @@ code, pre { font-family: var(--font-mono); }
   background: var(--dark-glass);
   border: 1px solid var(--dark-border);
   color: #ffffff;
-  box-shadow: 0 8px 18px rgba(23, 19, 58, 0.22);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
 .day-pill.today span { color: rgba(255, 255, 255, 0.8); }
@@ -1834,12 +1834,12 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
   border-radius: 24px;
   padding: 0;
   width: min(520px, 94vw);
-  box-shadow: 0 28px 64px rgba(18, 14, 52, 0.3), inset 0 1px 1px rgba(255, 255, 255, 1);
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.28), inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 
 .modal-sm { width: min(420px, 92vw); }
 
-.modal::backdrop { background: rgba(18, 14, 52, 0.45); backdrop-filter: blur(8px); }
+.modal::backdrop { background: rgba(24, 21, 23, 0.45); backdrop-filter: blur(8px); }
 
 .modal-body { padding: 22px; display: flex; flex-direction: column; gap: 4px; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
