@@ -917,9 +917,9 @@ code, pre { font-family: var(--font-mono); }
 .btn-indigo {
   background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%);
   color: #ffffff;
-  box-shadow: 0 8px 18px rgba(42, 10, 15, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
-.btn-indigo:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(42, 10, 15, 0.28); }
+.btn-indigo:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24); }
 
 .btn-dark-ghost {
   background: rgba(255, 255, 255, 0.12);
@@ -949,7 +949,7 @@ code, pre { font-family: var(--font-mono); }
 .btn-danger-solid {
   background: #b91c1c;
   color: #ffffff;
-  box-shadow: 0 8px 18px rgba(185, 28, 28, 0.24);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
 }
 .btn-danger-solid:hover:not(:disabled) { background: #991b1b; }
 
@@ -1214,7 +1214,7 @@ code, pre { font-family: var(--font-mono); }
   border-radius: 12px 12px 6px 6px;
   background: linear-gradient(180deg, rgba(153, 27, 27, 0.94) 0%, rgba(220, 38, 38, 0.65) 100%);
   border: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow: 0 6px 14px rgba(153, 27, 27, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.55);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.55);
   min-height: 10px;
   transition: height 0.35s ease, transform 0.2s ease;
 }
@@ -1266,7 +1266,7 @@ code, pre { font-family: var(--font-mono); }
 .seg-btn.active {
   background: var(--indigo);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.32);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
 }
 
 .counter-pair {
@@ -1306,12 +1306,12 @@ code, pre { font-family: var(--font-mono); }
 .tick.filled {
   background: linear-gradient(180deg, #991b1b 0%, #dc2626 100%);
   border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 10px rgba(153, 27, 27, 0.28);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
 }
 
 .tick.filled-hi {
   background: linear-gradient(180deg, #eab308 0%, #facc15 100%);
-  box-shadow: 0 4px 10px rgba(234, 179, 8, 0.32);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
 }
 
 .barcode-legend {
@@ -1583,7 +1583,7 @@ code, pre { font-family: var(--font-mono); }
   background: var(--indigo);
   color: #ffffff;
   border-color: var(--indigo);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
 }
 
 .search-input, .select-pill {
