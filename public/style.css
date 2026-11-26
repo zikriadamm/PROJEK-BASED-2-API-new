@@ -986,6 +986,12 @@ code, pre { font-family: var(--font-mono); }
 .pill-coral { background: var(--coral-bg); color: var(--coral); }
 .pill-lime { background: var(--lime); color: var(--dark); }
 .pill-dark-ok { background: rgba(22, 134, 106, 0.28); border: 1px solid rgba(110, 231, 183, 0.38); color: #86efac; }
+.pill-cat-akomodasi { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
+.pill-cat-transportasi { background: rgba(165, 31, 38, 0.12); color: #991b1b; }
+.pill-cat-konsumsi { background: rgba(217, 119, 6, 0.16); color: #92400e; }
+.pill-cat-belanja { background: rgba(22, 134, 106, 0.14); color: #0f634d; }
+.pill-cat-hiburan { background: rgba(126, 34, 206, 0.12); color: #6b21a8; }
+.pill-cat-lainnya { background: #edeae8; color: #3f383a; }
 
 /* ---------- Overview Bento Grid (Full-Width Widescreen) ---------- */
 .bento-layout {

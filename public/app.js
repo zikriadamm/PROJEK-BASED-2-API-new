@@ -824,6 +824,12 @@
       .join('');
   }
 
+  function categoryPillClass(category) {
+    const key = String(category || 'lainnya').toLowerCase();
+    const allowed = ['akomodasi', 'transportasi', 'konsumsi', 'belanja', 'hiburan', 'lainnya'];
+    return `pill-cat-${allowed.includes(key) ? key : 'lainnya'}`;
+  }
+
   function renderExpensesTable() {
     const tbody = $('expensesTableBody');
     const q = ($('searchExpense')?.value || '').trim().toLowerCase();
@@ -852,7 +858,7 @@
             <div class="meta-line">${escapeHtml(exp.activity?.title || `Activity #${exp.activityId}`)}</div>
             ${exp.notes ? `<div class="meta-line">${escapeHtml(exp.notes)}</div>` : ''}
           </td>
-          <td><span class="pill pill-indigo">${escapeHtml(exp.category)}</span></td>
+          <td><span class="pill ${categoryPillClass(exp.category)}">${escapeHtml(exp.category)}</span></td>
           <td class="num">${escapeHtml(Number(exp.amount).toLocaleString('id-ID'))} ${escapeHtml(exp.currency)}</td>
           <td class="num"><strong>${escapeHtml(exp.cost?.formattedIDR || '—')}</strong></td>
           <td>${escapeHtml(exp.submittedBy || '-')}</td>
