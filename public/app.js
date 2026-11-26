@@ -135,7 +135,7 @@
     activeView: 'overview',
     pendingDeleteId: null,
     toastTimer: null,
-    sidebarExpanded: false,
+    sidebarExpanded: true,
     sidebarTimeline: null
   };
 
@@ -939,6 +939,38 @@
     animateDialogOpen($('expenseDialog'));
   }
 
+  function openCategoryDetailModal() {
+    const listEl = $('categoryDetailList');
+    const rekap = state.summary?.rekapPerKategori || {};
+    const entries = Object.entries(rekap).sort((a, b) => (Number(b[1].totalIDR) || 0) - (Number(a[1].totalIDR) || 0));
+    const totalAll = entries.reduce((sum, [, info]) => sum + (Number(info.totalIDR) || 0), 0);
+
+    if (!entries.length) {
+      listEl.innerHTML = '<div class="card-sub">Belum ada data pengeluaran per kategori.</div>';
+    } else {
+      listEl.innerHTML = entries
+        .map(([cat, info]) => {
+          const val = Number(info.totalIDR) || 0;
+          const pct = totalAll > 0 ? Number(((val / totalAll) * 100).toFixed(1)) : 0;
+          return `
+            <div class="cat-detail-item">
+              <div class="cat-detail-head">
+                <div>
+                  <strong>${escapeHtml(cat)}</strong>
+                  <span class="pill pill-soft">${escapeHtml(info.count ?? 0)} transaksi</span>
+                </div>
+                <span class="cat-detail-val">${escapeHtml(info.formattedIDR || `Rp ${val.toLocaleString('id-ID')}`)} (${pct}%)</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" style="width:${Math.min(100, pct)}%"></div></div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+    $('categoryDialog').showModal();
+    animateDialogOpen($('categoryDialog'));
+  }
+
   function openDeleteConfirm(id) {
     const exp = state.expenses.find((e) => Number(e.id) === Number(id));
     state.pendingDeleteId = Number(id);
@@ -1186,6 +1218,18 @@
     $('railRefreshBtn').addEventListener('click', handleManualRefresh);
 
     $('btnHeroAddExpense').addEventListener('click', () => openExpenseModal());
+
+    $('btnOpenTeamModal')?.addEventListener('click', () => {
+      $('teamDialog').showModal();
+      animateDialogOpen($('teamDialog'));
+    });
+
+    $('btnOpenCategoryModal')?.addEventListener('click', openCategoryDetailModal);
+
+    $('btnCategoryToExpenses')?.addEventListener('click', () => {
+      $('categoryDialog').close();
+      switchView('expenses');
+    });
 
     $('toastClose').addEventListener('click', hideToast);
 
