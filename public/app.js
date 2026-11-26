@@ -570,6 +570,28 @@
     }
   }
 
+  function isMahasiswaSession() {
+    return Boolean(state.token && state.user && state.user.role === 'mahasiswa');
+  }
+
+  function applyRoleVisibility() {
+    const hideAdmin = isMahasiswaSession();
+    $('btnOpenActivityModal')?.classList.toggle('hidden', hideAdmin);
+    $('btnSidebarAddActivity')?.classList.toggle('hidden', hideAdmin);
+
+    const gqlDeletePreset = document.querySelector('[data-gql-preset="delete"]');
+    if (gqlDeletePreset) {
+      gqlDeletePreset.classList.toggle('hidden', hideAdmin);
+      if (hideAdmin && gqlDeletePreset.classList.contains('active')) {
+        document.querySelectorAll('[data-gql-preset]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.gqlPreset === 'activities');
+        });
+        $('gqlQuery').value = GQL_PRESETS.activities.query;
+        $('gqlVars').value = GQL_PRESETS.activities.variables;
+      }
+    }
+  }
+
   function renderSession() {
     const badge = $('sessionBadge');
     const railAvatar = $('railAvatar');
@@ -601,6 +623,8 @@
       logoutBtn.classList.add('hidden');
       secLogout.classList.add('hidden');
     }
+    applyRoleVisibility();
+    if (state.expenses.length) renderExpensesTable();
   }
 
   function renderCategoryChart(rekapPerKategori = {}) {
@@ -850,6 +874,7 @@
       return;
     }
 
+    const hideDelete = isMahasiswaSession();
     tbody.innerHTML = filtered
       .map((exp) => `
         <tr>
@@ -866,7 +891,7 @@
           <td>
             <div class="row-actions">
               <button class="btn btn-table-edit" type="button" data-edit-expense="${escapeHtml(exp.id)}">Edit</button>
-              <button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
+              ${hideDelete ? '' : `<button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>`}
             </div>
           </td>
         </tr>
