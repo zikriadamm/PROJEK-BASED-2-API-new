@@ -111,9 +111,12 @@
           </button>
         </div>
       </div>
+    </aside>
 
-      <!-- Connected Solid White Right Contextual Rail (Revealed on Expand) -->
-      <div class="sidebar-white-rail" id="sidebarWhiteRail" aria-label="Aksi Cepat Kontekstual">
+    <!-- Full-Screen Seamless White Canvas Connected to Active Sidebar Notch -->
+    <main class="workspace">
+      <!-- Seamless Left Quick-Action Strip on the White Canvas -->
+      <div class="ws-quick-rail" id="sidebarWhiteRail" aria-label="Aksi Cepat Kontekstual">
         <button id="btnRailPrimaryAction" class="wr-primary-btn" type="button" title="Catat Pengeluaran Baru" aria-label="Catat Pengeluaran Baru">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
@@ -132,30 +135,32 @@
 
         <span id="railSectionLabel" class="wr-vertical-label">OVERVIEW</span>
       </div>
-    </aside>
 
-    <!-- Main Workspace -->
-    <main class="workspace">
-      <!-- Top Context Strip -->
-      <header class="top-strip">
-        <div>
-          <span class="crumb">FT Universitas Tadulako &middot; Kelompok 2 TIC</span>
-          <h1 id="viewTitle" class="page-heading">Dashboard Overview</h1>
-        </div>
-        <div class="top-actions">
-          <div class="key-pill">
-            <label class="key-label" for="apiKeyInput">x-api-key</label>
-            <input id="apiKeyInput" type="password" value="ganti-dengan-api-key-anda" placeholder="API_KEY dari .env" autocomplete="off" spellcheck="false">
-            <button id="btnToggleApiKey" class="key-toggle" type="button" aria-label="Tampilkan atau sembunyikan API Key">Lihat</button>
+      <!-- Main Column inside Full-Screen White Canvas -->
+      <div class="workspace-body">
+        <!-- Top Context Strip -->
+        <header class="top-strip">
+          <div>
+            <span class="crumb">FT Universitas Tadulako &middot; Kelompok 2 TIC</span>
+            <h1 id="viewTitle" class="page-heading">Dashboard Overview</h1>
           </div>
-          <button id="sessionBadge" class="session-pill session-guest" type="button" data-jump-view="security">Belum Login</button>
-        </div>
-      </header>
+          <div class="top-actions">
+            <div class="key-pill">
+              <label class="key-label" for="apiKeyInput">x-api-key</label>
+              <input id="apiKeyInput" type="password" value="ganti-dengan-api-key-anda" placeholder="API_KEY dari .env" autocomplete="off" spellcheck="false">
+              <button id="btnToggleApiKey" class="key-toggle" type="button" aria-label="Tampilkan atau sembunyikan API Key">Lihat</button>
+            </div>
+            <button id="sessionBadge" class="session-pill session-guest" type="button" data-jump-view="security">Belum Login</button>
+          </div>
+        </header>
 
-      <div id="toast" class="toast hidden" role="status" aria-live="polite">
-        <span id="toastMessage"></span>
-        <button id="toastClose" class="toast-close" type="button" aria-label="Tutup notifikasi">&times;</button>
-      </div>
+        <div id="toast" class="toast hidden" role="status" aria-live="polite">
+          <span id="toastMessage"></span>
+          <button id="toastClose" class="toast-close" type="button" aria-label="Tutup notifikasi">&times;</button>
+        </div>
+
+        <!-- Bingkai Isi Sub-Menu -->
+        <div class="submenu-frame">
 
       <!-- ==================== VIEW 1: OVERVIEW BENTO GRID ==================== -->
       <section id="view-overview" class="view-panel active">
@@ -542,6 +547,8 @@
           </div>
         </div>
       </section>
+        </div><!-- /.submenu-frame -->
+      </div><!-- /.workspace-body -->
     </main>
   </div>
 

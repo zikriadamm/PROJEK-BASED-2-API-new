@@ -292,9 +292,8 @@
 
   function setSidebarExpanded(expand) {
     const sidebar = $('sidebar');
-    const whiteRail = $('sidebarWhiteRail');
     const expandBtn = $('btnSidebarExpand');
-    if (!sidebar || !whiteRail) return;
+    if (!sidebar) return;
 
     const next = Boolean(expand);
     if (state.sidebarExpanded === next) return;
@@ -311,10 +310,7 @@
 
     if (!canAnimate()) {
       sidebar.dataset.expanded = String(next);
-      sidebar.style.width = next ? '278px' : '68px';
-      whiteRail.style.width = next ? '48px' : '0px';
-      whiteRail.style.opacity = next ? '1' : '0';
-      whiteRail.style.visibility = next ? 'visible' : 'hidden';
+      sidebar.style.width = next ? '242px' : '74px';
       const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
       moveSidebarNotch(activeView, true);
       return;
@@ -331,15 +327,8 @@
       });
 
       tl.addLabel('shell', 0)
-        .to(sidebar, { width: 278, duration: 0.4, ease: 'power3.inOut' }, 'shell')
-        .addLabel('rail', 'shell+=0.08')
-        .fromTo(
-          whiteRail,
-          { width: 0, autoAlpha: 0 },
-          { width: 48, autoAlpha: 1, duration: 0.34, ease: 'power3.out' },
-          'rail'
-        )
-        .addLabel('labels', 'shell+=0.14')
+        .to(sidebar, { width: 242, duration: 0.38, ease: 'power3.inOut' }, 'shell')
+        .addLabel('labels', 'shell+=0.12')
         .fromTo(
           reveals,
           { autoAlpha: 0, x: -10, filter: 'blur(6px)' },
@@ -373,10 +362,8 @@
           { autoAlpha: 0, x: -6, filter: 'blur(4px)', duration: 0.14, stagger: 0.006, ease: 'power2.in' },
           'labelsOut'
         )
-        .addLabel('railOut', 'labelsOut+=0.06')
-        .to(whiteRail, { width: 0, autoAlpha: 0, duration: 0.22, ease: 'power2.inOut' }, 'railOut')
         .addLabel('shellOut', 'labelsOut+=0.08')
-        .to(sidebar, { width: 68, duration: 0.34, ease: 'power3.inOut' }, 'shellOut');
+        .to(sidebar, { width: 74, duration: 0.34, ease: 'power3.inOut' }, 'shellOut');
 
       state.sidebarTimeline = tl;
     }
