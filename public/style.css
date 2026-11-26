@@ -860,7 +860,7 @@ code, pre { font-family: var(--font-mono); }
 
 .card:hover {
   background: var(--glass-bg-hover);
-  box-shadow: 0 16px 42px rgba(31, 25, 86, 0.11), inset 0 1px 1px rgba(255, 255, 255, 1);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.09), inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 
 .card-top {
