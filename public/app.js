@@ -9,14 +9,6 @@
     security: 'Keamanan & Hak Akses (RBAC)'
   };
 
-  const RAIL_LABELS = {
-    overview: 'OVERVIEW',
-    activities: 'KEGIATAN',
-    expenses: 'BIAYA',
-    explorer: 'EXPLORER',
-    security: 'KEAMANAN'
-  };
-
   const GQL_PRESETS = {
     activities: {
       query: `query {
@@ -263,38 +255,26 @@
   function moveSidebarNotch(viewName, immediate = false) {
     const notch = $('sidebarActiveNotch');
     const activeBtn = document.querySelector(`.rail-btn[data-view="${viewName}"]`);
-    const labelEl = $('railSectionLabel');
-    const nextLabel = RAIL_LABELS[viewName] || 'OVERVIEW';
     if (!notch || !activeBtn) return;
 
     const targetY = activeBtn.offsetTop;
     if (immediate || !canAnimate()) {
       notch.style.transform = `translateY(${targetY}px)`;
-      if (labelEl) labelEl.textContent = nextLabel;
       return;
     }
 
-    const navTl = window.gsap.timeline({ defaults: { ease: 'power3.out' } });
-    navTl.addLabel('slide', 0);
-    navTl.to(notch, { y: targetY, duration: 0.34, ease: 'back.out(1.25)', overwrite: 'auto' }, 'slide');
-    if (labelEl && labelEl.textContent !== nextLabel) {
-      navTl.to(labelEl, { y: 8, opacity: 0, duration: 0.12, ease: 'power2.in' }, 'slide');
-      navTl.call(() => {
-        labelEl.textContent = nextLabel;
-      });
-      navTl.fromTo(
-        labelEl,
-        { y: -8, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.2, clearProps: 'transform,opacity' }
-      );
-    }
+    window.gsap.to(notch, {
+      y: targetY,
+      duration: 0.34,
+      ease: 'back.out(1.25)',
+      overwrite: 'auto'
+    });
   }
 
   function setSidebarExpanded(expand) {
     const sidebar = $('sidebar');
-    const whiteRail = $('sidebarWhiteRail');
     const expandBtn = $('btnSidebarExpand');
-    if (!sidebar || !whiteRail) return;
+    if (!sidebar) return;
 
     const next = Boolean(expand);
     if (state.sidebarExpanded === next) return;
@@ -311,10 +291,7 @@
 
     if (!canAnimate()) {
       sidebar.dataset.expanded = String(next);
-      sidebar.style.width = next ? '278px' : '68px';
-      whiteRail.style.width = next ? '48px' : '0px';
-      whiteRail.style.opacity = next ? '1' : '0';
-      whiteRail.style.visibility = next ? 'visible' : 'hidden';
+      sidebar.style.width = next ? '242px' : '74px';
       const activeView = document.querySelector('.rail-btn.active[data-view]')?.dataset.view || 'overview';
       moveSidebarNotch(activeView, true);
       return;
@@ -331,15 +308,8 @@
       });
 
       tl.addLabel('shell', 0)
-        .to(sidebar, { width: 278, duration: 0.4, ease: 'power3.inOut' }, 'shell')
-        .addLabel('rail', 'shell+=0.08')
-        .fromTo(
-          whiteRail,
-          { width: 0, autoAlpha: 0 },
-          { width: 48, autoAlpha: 1, duration: 0.34, ease: 'power3.out' },
-          'rail'
-        )
-        .addLabel('labels', 'shell+=0.14')
+        .to(sidebar, { width: 242, duration: 0.38, ease: 'power3.inOut' }, 'shell')
+        .addLabel('labels', 'shell+=0.12')
         .fromTo(
           reveals,
           { autoAlpha: 0, x: -10, filter: 'blur(6px)' },
@@ -373,10 +343,8 @@
           { autoAlpha: 0, x: -6, filter: 'blur(4px)', duration: 0.14, stagger: 0.006, ease: 'power2.in' },
           'labelsOut'
         )
-        .addLabel('railOut', 'labelsOut+=0.06')
-        .to(whiteRail, { width: 0, autoAlpha: 0, duration: 0.22, ease: 'power2.inOut' }, 'railOut')
         .addLabel('shellOut', 'labelsOut+=0.08')
-        .to(sidebar, { width: 68, duration: 0.34, ease: 'power3.inOut' }, 'shellOut');
+        .to(sidebar, { width: 74, duration: 0.34, ease: 'power3.inOut' }, 'shellOut');
 
       state.sidebarTimeline = tl;
     }
@@ -570,6 +538,28 @@
     }
   }
 
+  function isMahasiswaSession() {
+    return Boolean(state.token && state.user && state.user.role === 'mahasiswa');
+  }
+
+  function applyRoleVisibility() {
+    const hideAdmin = isMahasiswaSession();
+    $('btnOpenActivityModal')?.classList.toggle('hidden', hideAdmin);
+    $('btnSidebarAddActivity')?.classList.toggle('hidden', hideAdmin);
+
+    const gqlDeletePreset = document.querySelector('[data-gql-preset="delete"]');
+    if (gqlDeletePreset) {
+      gqlDeletePreset.classList.toggle('hidden', hideAdmin);
+      if (hideAdmin && gqlDeletePreset.classList.contains('active')) {
+        document.querySelectorAll('[data-gql-preset]').forEach((b) => {
+          b.classList.toggle('active', b.dataset.gqlPreset === 'activities');
+        });
+        $('gqlQuery').value = GQL_PRESETS.activities.query;
+        $('gqlVars').value = GQL_PRESETS.activities.variables;
+      }
+    }
+  }
+
   function renderSession() {
     const badge = $('sessionBadge');
     const railAvatar = $('railAvatar');
@@ -601,6 +591,8 @@
       logoutBtn.classList.add('hidden');
       secLogout.classList.add('hidden');
     }
+    applyRoleVisibility();
+    if (state.expenses.length) renderExpensesTable();
   }
 
   function renderCategoryChart(rekapPerKategori = {}) {
@@ -850,6 +842,7 @@
       return;
     }
 
+    const hideDelete = isMahasiswaSession();
     tbody.innerHTML = filtered
       .map((exp) => `
         <tr>
@@ -866,7 +859,7 @@
           <td>
             <div class="row-actions">
               <button class="btn btn-table-edit" type="button" data-edit-expense="${escapeHtml(exp.id)}">Edit</button>
-              <button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>
+              ${hideDelete ? '' : `<button class="btn btn-danger" type="button" data-delete-expense="${escapeHtml(exp.id)}">Hapus</button>`}
             </div>
           </td>
         </tr>
@@ -1164,9 +1157,6 @@
       await refreshAll();
       showToast('Data dashboard diperbarui dari API.', 'ok');
     }
-
-    $('btnRailPrimaryAction')?.addEventListener('click', () => openExpenseModal());
-    $('btnRailRefreshQuick')?.addEventListener('click', handleManualRefresh);
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
