@@ -135,7 +135,7 @@
     activeView: 'overview',
     pendingDeleteId: null,
     toastTimer: null,
-    sidebarExpanded: false,
+    sidebarExpanded: true,
     sidebarTimeline: null
   };
 
