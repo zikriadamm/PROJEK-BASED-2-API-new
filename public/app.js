@@ -9,14 +9,6 @@
     security: 'Keamanan & Hak Akses (RBAC)'
   };
 
-  const RAIL_LABELS = {
-    overview: 'OVERVIEW',
-    activities: 'KEGIATAN',
-    expenses: 'BIAYA',
-    explorer: 'EXPLORER',
-    security: 'KEAMANAN'
-  };
-
   const GQL_PRESETS = {
     activities: {
       query: `query {
@@ -263,31 +255,20 @@
   function moveSidebarNotch(viewName, immediate = false) {
     const notch = $('sidebarActiveNotch');
     const activeBtn = document.querySelector(`.rail-btn[data-view="${viewName}"]`);
-    const labelEl = $('railSectionLabel');
-    const nextLabel = RAIL_LABELS[viewName] || 'OVERVIEW';
     if (!notch || !activeBtn) return;
 
     const targetY = activeBtn.offsetTop;
     if (immediate || !canAnimate()) {
       notch.style.transform = `translateY(${targetY}px)`;
-      if (labelEl) labelEl.textContent = nextLabel;
       return;
     }
 
-    const navTl = window.gsap.timeline({ defaults: { ease: 'power3.out' } });
-    navTl.addLabel('slide', 0);
-    navTl.to(notch, { y: targetY, duration: 0.34, ease: 'back.out(1.25)', overwrite: 'auto' }, 'slide');
-    if (labelEl && labelEl.textContent !== nextLabel) {
-      navTl.to(labelEl, { y: 8, opacity: 0, duration: 0.12, ease: 'power2.in' }, 'slide');
-      navTl.call(() => {
-        labelEl.textContent = nextLabel;
-      });
-      navTl.fromTo(
-        labelEl,
-        { y: -8, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.2, clearProps: 'transform,opacity' }
-      );
-    }
+    window.gsap.to(notch, {
+      y: targetY,
+      duration: 0.34,
+      ease: 'back.out(1.25)',
+      overwrite: 'auto'
+    });
   }
 
   function setSidebarExpanded(expand) {
@@ -1176,9 +1157,6 @@
       await refreshAll();
       showToast('Data dashboard diperbarui dari API.', 'ok');
     }
-
-    $('btnRailPrimaryAction')?.addEventListener('click', () => openExpenseModal());
-    $('btnRailRefreshQuick')?.addEventListener('click', handleManualRefresh);
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
