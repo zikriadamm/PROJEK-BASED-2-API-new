@@ -937,13 +937,13 @@ code, pre { font-family: var(--font-mono); }
 .btn-danger-solid:hover:not(:disabled) { background: #991b1b; }
 
 .btn-table-edit {
-  background: rgba(153, 27, 27, 0.1);
-  color: var(--indigo);
-  border-color: rgba(153, 27, 27, 0.22);
+  background: #f4f2f1;
+  color: #241b1d;
+  border-color: rgba(36, 27, 29, 0.2);
   padding: 6px 12px;
   font-size: 0.76rem;
 }
-.btn-table-edit:hover:not(:disabled) { background: rgba(153, 27, 27, 0.18); }
+.btn-table-edit:hover:not(:disabled) { background: #e8e4e2; }
 
 .row-actions {
   display: inline-flex;
