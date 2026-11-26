@@ -176,7 +176,10 @@
               <article class="card">
                 <div class="card-top">
                   <h3>Tim Kelompok 2</h3>
-                  <span class="pill pill-soft">4 Aktif</span>
+                  <div class="card-top-actions">
+                    <span class="pill pill-soft">4 Aktif</span>
+                    <button id="btnOpenTeamModal" class="link-btn" type="button">Detail &rarr;</button>
+                  </div>
                 </div>
                 <div class="team-grid">
                   <div class="mini-tile">
@@ -219,7 +222,10 @@
               <article class="card">
                 <div class="card-top">
                   <h3>Kategori Biaya</h3>
-                  <span id="kpiCatCount" class="pill pill-indigo">IDR</span>
+                  <div class="card-top-actions">
+                    <span id="kpiCatCount" class="pill pill-indigo">IDR</span>
+                    <button id="btnOpenCategoryModal" class="link-btn" type="button">Detail &rarr;</button>
+                  </div>
                 </div>
                 <div id="categoryChart" class="bar-chart" aria-label="Grafik pengeluaran per kategori"></div>
               </article>
@@ -318,7 +324,7 @@
             <article class="card feed-card">
               <div class="card-top">
                 <h3>Transaksi Terbaru</h3>
-                <button class="link-btn" type="button" data-jump-view="expenses">Kelola &rarr;</button>
+                <button class="link-btn" type="button" data-jump-view="expenses">Detail &rarr;</button>
               </div>
               <div class="feed-tabs" role="tablist" aria-label="Filter transaksi">
                 <button class="feed-tab active" type="button" data-feed-cat="">Semua</button>
@@ -616,6 +622,70 @@
         <button id="btnSubmitExpense" class="btn btn-indigo" type="submit">Simpan Pengeluaran</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- MODAL DETAIL ANGGOTA KELOMPOK 2 -->
+  <dialog id="teamDialog" class="modal">
+    <div class="modal-body">
+      <div class="modal-head">
+        <h3>Detail Anggota Kelompok 2 TIC</h3>
+        <button class="icon-close" type="button" data-close-dialog="teamDialog" aria-label="Tutup">&times;</button>
+      </div>
+      <p class="card-sub">S1 Teknik Informatika, Fakultas Teknik Universitas Tadulako (Final Project Rekayasa API Sub-CPMK 5).</p>
+      <div class="detail-list">
+        <div class="detail-row">
+          <span class="mini-dot dot-indigo">ZA</span>
+          <div class="detail-info">
+            <strong>Muhammad Zikri Adam</strong>
+            <small>NIM F5512530117 &middot; GitHub: @zikriadamm</small>
+            <div class="meta-line">Security &amp; Auth (#1), GraphQL (#5), Web Dashboard (#6)</div>
+          </div>
+        </div>
+        <div class="detail-row">
+          <span class="mini-dot dot-emerald">LI</span>
+          <div class="detail-info">
+            <strong>Lidiya</strong>
+            <small>NIM F5512530118 &middot; GitHub: @LIDIYALIDIYAA</small>
+            <div class="meta-line">REST API v2 Berelasi (/v2/activities &amp; /v2/expenses, #4)</div>
+          </div>
+        </div>
+        <div class="detail-row">
+          <span class="mini-dot dot-amber">TA</span>
+          <div class="detail-info">
+            <strong>Tabita Creaselia Belicia Theona</strong>
+            <small>NIM F5512520086 &middot; GitHub: @Tabitahcreaseliabelicia</small>
+            <div class="meta-line">2 Public API (ExchangeRate &amp; Open-Meteo, #2), REST v1 Sunset (#3)</div>
+          </div>
+        </div>
+        <div class="detail-row">
+          <span class="mini-dot dot-rose">TR</span>
+          <div class="detail-info">
+            <strong>Trista Sheryl Lambei</strong>
+            <small>NIM F5512530106 &middot; GitHub: @ryllcc</small>
+            <div class="meta-line">OpenAPI 3.0.3 &amp; Client CLI (#7), Postman Collection Runner (#8)</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-indigo" type="button" data-close-dialog="teamDialog">Tutup</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- MODAL DETAIL KATEGORI BIAYA -->
+  <dialog id="categoryDialog" class="modal">
+    <div class="modal-body">
+      <div class="modal-head">
+        <h3>Detail Sebaran Kategori Biaya</h3>
+        <button class="icon-close" type="button" data-close-dialog="categoryDialog" aria-label="Tutup">&times;</button>
+      </div>
+      <p class="card-sub">Rekap realisasi pengeluaran per kategori (konversi IDR dari <code>GET /v2/expenses/summary</code>).</p>
+      <div id="categoryDetailList" class="detail-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" type="button" data-close-dialog="categoryDialog">Tutup</button>
+        <button id="btnCategoryToExpenses" class="btn btn-indigo" type="button">Buka Tabel Pengeluaran</button>
+      </div>
+    </div>
   </dialog>
 
   <!-- MODAL KONFIRMASI HAPUS PENGELUARAN -->
