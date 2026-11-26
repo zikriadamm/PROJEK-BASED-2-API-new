@@ -874,8 +874,6 @@
       return;
     }
     state.expenses = res.data.data || [];
-    const expBadge = $('sbExpenseCount');
-    if (expBadge) expBadge.textContent = String(state.expenses.length);
     renderExpensesTable();
     renderRailFeed();
   }
