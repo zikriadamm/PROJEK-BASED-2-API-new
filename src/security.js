@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const config = require('./config');
 
 // Daftar token yang dicabut saat logout (token -> exp unix seconds)
+// shortcut: disimpan di memori untuk single-process lokal/kampus; restart server mereset daftar ini sebelum exp 2 jam habis.
 const revokedTokens = new Map();
 
 function pruneRevokedTokens() {

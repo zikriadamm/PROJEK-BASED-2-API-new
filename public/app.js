@@ -140,6 +140,7 @@
     feedCategory: '',
     fulfillScope: 'ALL',
     inspectedRole: 'admin',
+    activeView: 'overview',
     pendingDeleteId: null,
     toastTimer: null,
     sidebarExpanded: false,
@@ -488,18 +489,47 @@
     return headers;
   }
 
+  function isTokenExpired(token) {
+    try {
+      const parts = String(token || '').split('.');
+      if (parts.length !== 3) return true;
+      const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+      const payload = JSON.parse(atob(padded));
+      return typeof payload.exp === 'number' && Date.now() / 1000 >= payload.exp;
+    } catch (err) {
+      return true;
+    }
+  }
+
   async function apiRequest(url, options = {}) {
-    const res = await fetch(url, {
-      method: options.method || 'GET',
-      headers: buildHeaders(Boolean(options.auth)),
-      body: options.body ? JSON.stringify(options.body) : undefined
-    });
-    const data = await res.json().catch(() => null);
-    return { ok: res.ok, status: res.status, headers: res.headers, data };
+    try {
+      const res = await fetch(url, {
+        method: options.method || 'GET',
+        headers: buildHeaders(Boolean(options.auth)),
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+      const data = await res.json().catch(() => null);
+      if (options.auth && res.status === 401 && state.token) {
+        state.token = null;
+        state.user = null;
+        saveSession();
+        renderSession();
+      }
+      return { ok: res.ok, status: res.status, headers: res.headers, data };
+    } catch (err) {
+      return {
+        ok: false,
+        status: 0,
+        headers: new Headers(),
+        data: { error: 'Server tidak dapat dihubungi. Pastikan server berjalan.' }
+      };
+    }
   }
 
   function switchView(viewName) {
-    if (!VIEW_TITLES[viewName]) return;
+    if (!VIEW_TITLES[viewName] || state.activeView === viewName) return;
+    state.activeView = viewName;
     $('viewTitle').textContent = VIEW_TITLES[viewName];
 
     document.querySelectorAll('.rail-btn[data-view]').forEach((btn) => {
@@ -529,9 +559,11 @@
   function restoreSession() {
     try {
       const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null');
-      if (saved && saved.token && saved.user) {
+      if (saved && saved.token && saved.user && !isTokenExpired(saved.token)) {
         state.token = saved.token;
         state.user = saved.user;
+      } else if (saved) {
+        sessionStorage.removeItem(STORAGE_KEY);
       }
     } catch (err) {
       sessionStorage.removeItem(STORAGE_KEY);
@@ -1083,7 +1115,7 @@
       apiRequest('/v2/expenses')
     ]);
 
-    $('auditV1Status').textContent = v1Res.status === 501 ? '501 (Menunggu Issue #3)' : `HTTP ${v1Res.status}`;
+    $('auditV1Status').textContent = `HTTP ${v1Res.status}`;
     $('auditSunset').textContent = v1Res.headers.get('Sunset') || '(belum ada)';
     $('auditDeprecation').textContent = v1Res.headers.get('Deprecation') || '(belum ada)';
     $('auditLink').textContent = v1Res.headers.get('Link') || '(belum ada)';
@@ -1116,10 +1148,10 @@
     $('sidebarSearchInput')?.addEventListener('input', (e) => {
       const q = e.target.value;
       $('searchExpense').value = q;
-      if (q.trim()) {
+      if (q.trim() && state.activeView !== 'expenses') {
         switchView('expenses');
-        renderExpensesTable();
       }
+      renderExpensesTable();
     });
 
     $('btnSidebarAddActivity')?.addEventListener('click', () => {
@@ -1128,11 +1160,13 @@
       animateDialogOpen($('activityDialog'));
     });
 
-    $('btnRailPrimaryAction')?.addEventListener('click', () => openExpenseModal());
-    $('btnRailRefreshQuick')?.addEventListener('click', async () => {
+    async function handleManualRefresh() {
       await refreshAll();
       showToast('Data dashboard diperbarui dari API.', 'ok');
-    });
+    }
+
+    $('btnRailPrimaryAction')?.addEventListener('click', () => openExpenseModal());
+    $('btnRailRefreshQuick')?.addEventListener('click', handleManualRefresh);
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
@@ -1148,17 +1182,18 @@
     document.body.addEventListener('click', (e) => {
       const projBtn = e.target.closest('[data-jump-activity]');
       if (projBtn) {
+        const actId = Number(projBtn.dataset.jumpActivity);
+        const act = state.activities.find((item) => Number(item.id) === actId);
+        $('searchActivity').value = act ? act.title : '';
         switchView('activities');
+        renderActivitiesView();
         return;
       }
       const jumper = e.target.closest('[data-jump-view]');
       if (jumper) switchView(jumper.dataset.jumpView);
     });
 
-    $('railRefreshBtn').addEventListener('click', async () => {
-      await refreshAll();
-      showToast('Data dashboard diperbarui dari API.', 'ok');
-    });
+    $('railRefreshBtn').addEventListener('click', handleManualRefresh);
 
     $('btnHeroAddExpense').addEventListener('click', () => openExpenseModal());
 
